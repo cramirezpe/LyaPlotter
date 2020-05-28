@@ -101,7 +101,7 @@ class CoLoReSim():
     def __str__(self):
         return "{} sim. Id: {}\tName: {}\tPath: {}".format(self.sim_class,self.id_,self.__name__,self.sim_path)
 
-    def get_Sources(self, ifiles=[0], lr_max=1200.):
+    def get_Sources(self, ifiles=[0], lr_max=1200.,source=1):
         ''' Get sources from a CoLoRe simulations:
 
         Arguments
@@ -109,7 +109,7 @@ class CoLoReSim():
         lr_max          -- Set maximum wavelength for mask
         '''
         check_is_list(ifiles)
-        files            = [self.sim_path + '/out_srcs_s1_{}.fits'.format(ifile) for ifile in ifiles]
+        files            = [self.sim_path + '/out_srcs_s{}_{}.fits'.format(source,ifile) for ifile in ifiles]
 
         return CoLoReFiles(files, lr_max, self)
         # self.CoLoReFiles = CoLoReFiles(files,lr_max,self.file_type)
