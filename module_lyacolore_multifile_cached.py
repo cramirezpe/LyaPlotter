@@ -540,6 +540,15 @@ class PiccaStyleFiles(FilesSkeleton):
     def values(self):
         tmp = np.vstack( [hdulist[0].data   for hdulist in self.hdulists] )
         return tmp.transpose()
+
+    # RA and DEC is defined with the hdulist 3 so I should redifine them 
+    @cached_property
+    def RA(self):
+        return  np.concatenate( [hdulist[3].data['RA'] for hdulist in self.hdulists] )
+
+    @cached_property
+    def DEC(self):
+        return  np.concatenate( [hdulist[3].data['DEC'] for hdulist in self.hdulists] )
         
 class Plotter:
     @staticmethod
