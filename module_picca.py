@@ -126,7 +126,7 @@ class cfPlotter(PlotterSkeleton):
         ''' Classmethod to search outputs under the given path. They are returned sorted by date.''' 
         return PlotterSkeleton.search(path,'e_cf.fits.gz')
 
-    def plot(self, rfactor=0, mumin=0., mumax=0.5, ax=None, title=False, **kwargs):
+    def plot(self, rfactor=0, mumin=0., mumax=1, ax=None, title=False, **kwargs):
         da     = self.hdulist[1]['DA'][:]
         co     = self.hdulist[1]['CO'][:]
 
