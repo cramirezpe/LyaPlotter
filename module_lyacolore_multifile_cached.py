@@ -187,7 +187,7 @@ class LyaCoLoReSim():
         # return self.picca_files[file_name]
 
 class FilesSkeleton:
-    def __init__(self, file_paths, parent_sim):
+    def __init__(self, file_paths, parent_sim=None):
         check_is_list(file_paths)
 
         self.sim        = parent_sim
