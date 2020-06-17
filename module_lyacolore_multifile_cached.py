@@ -188,7 +188,8 @@ class LyaCoLoReSim():
 
 class FilesSkeleton:
     def __init__(self, file_paths, parent_sim=None):
-        check_is_list(file_paths)
+        if isinstance(file_paths, str):
+            file_paths = [file_paths]
 
         self.sim        = parent_sim
 
