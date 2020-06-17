@@ -203,7 +203,7 @@ class FilesSkeleton:
     def DEC(self):
         return  np.concatenate( [hdulist[1].data['DEC'] for hdulist in self.hdulists] )
 
-    def plot_locations(self, ax=None, **kwargs):
+    def plot_footprint(self,bins=100, ax=None, **kwargs):
         '''Plot the locations of the QSO, they should be incorporated in self.RA and self.DEC
         
         Arguments:
@@ -211,8 +211,9 @@ class FilesSkeleton:
         kwargs          -- All unmatched kwargs will be sent to the plotter.
         '''
         if not ax: fig, ax = plt.subplots()
-      
-        Plotter.plot_locations(ax,self.RA,self.DEC,**kwargs)
+        Plotter.plot_footprint(self.RA,self.DEC,bins,ax=ax,**kwargs)
+        ax.set_xlabel(r'RA')
+        ax.set_ylabel(r'DEC')
         return
 
     def plot_qso_dist(self, ax=None, **kwargs):
@@ -225,7 +226,7 @@ class FilesSkeleton:
         if not ax: fig, ax = plt.subplots()
         bins = np.linspace(1.0,4.0,50)
 
-        Plotter.plot_dist(ax,self.z_qso, bins)
+        Plotter.plot_dist(self.z_qso, bins,ax=ax, **kwargs)
         ax.set_xlabel(r'$z$')
         ax.set_ylabel('# QSOs')
         return
@@ -552,20 +553,22 @@ class PiccaStyleFiles(FilesSkeleton):
         
 class Plotter:
     @staticmethod
-    def plot_locations(ax,RA,DEC,**kwargs):
-        phi = RA*np.pi/180
-        theta = np.pi/2 - DEC*np.pi/180
-        ax.scatter(phi/np.pi,np.cos(theta),**kwargs)
-        ax.set_xlim(0.0,2.0)
-        ax.set_ylim(-1.0,1.0)
-        ax.set_xlabel(r'$\phi/\pi$')
-        ax.set_ylabel(r'$\cos(\theta)$')
-        return phi, theta
+    def plot_footprint(RA,DEC,bins,ax=None,**kwargs):
+        if not ax: fig, ax = plt.subplots()
+
+        my_cmap = plt.cm.jet
+        my_cmap.set_under('w',1)
+
+        plt.hist2d(RA,DEC,bins=bins, vmin=1, cmap=my_cmap)
+        cb = plt.colorbar()
+        cb.set_label('Number of entries')
+        return
     
     @staticmethod
-    def plot_dist(ax,values,bins,histtype= 'step', **kwargs):
-        ax.hist(values,bins,histtype =histtype, **kwargs)
-        return bins,values
+    def plot_dist(values,bins,ax=None, **kwargs):
+        if not ax: fig, ax = plt.subplots()
+        ax.hist(values,bins, **kwargs)
+        return
 
     @staticmethod
     def plot_skewer(ax, axis_values,values,value_name,weights=None,print_info=False, **kwargs):
