@@ -194,27 +194,17 @@ class FilesSkeleton:
         self.sim        = parent_sim
 
         self.file_paths = file_paths
+        self.N_files    = len(file_paths)
+
         self.hdulists   = [fits.open(path) for path in self.file_paths]
         
     @cached_property
-    def select_qsos(self):
-        return [[True for x in range(hdulist[1].header['NAXIS2'])]  for hdulist in self.hdulists]
-
-    @cached_property
-    def z_qso(self):
-        return  np.concatenate( [hdulist[1].data['Z'][select] for hdulist,select in zip(self.hdulists, self.select_qsos)] )
-
-    @cached_property
-    def N_qso(self):
-        return len(self.z_qso)
-
-    @cached_property
     def RA(self):
-        return  np.concatenate( [hdulist[1].data['RA'][select] for hdulist,select in zip(self.hdulists,self.select_qsos)] )
+        return  np.concatenate( [hdulist[1].data['RA'] for hdulist in self.hdulists] )
 
     @cached_property
     def DEC(self):
-        return  np.concatenate( [hdulist[1].data['DEC'][select] for hdulist,select in zip(self.hdulists,self.select_qsos)] )
+        return  np.concatenate( [hdulist[1].data['DEC'] for hdulist in self.hdulists] )
 
     def plot_footprint(self,bins=100, ax=None, **kwargs):
         '''Plot the locations of the QSO, they should be incorporated in self.RA and self.DEC
@@ -329,7 +319,7 @@ class FilesSkeleton:
         if not ax:                  fig, ax = plt.subplots()
 
         return Plotter.plot_std_all_skewers(ax,axis_values, values_array, value_name, self.mask, kwargs_hline=kwargs_hline, **kwargs)
-        
+
 
 class CoLoReFiles(FilesSkeleton):
     def __init__(self, file_paths, lr_max, parent_sim):
