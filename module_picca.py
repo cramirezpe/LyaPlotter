@@ -126,12 +126,12 @@ class cfPlotter(PlotterSkeleton):
         ''' Classmethod to search outputs under the given path. They are returned sorted by date.''' 
         return PlotterSkeleton.search(path,'e_cf.fits.gz')
 
-    def plot(self, rfactor=0, mumin=0., mumax=1, ax=None, title=False, **kwargs):
+    def plot(self, rfactor=0, mumin=0., mumax=1, ax=None, title=False, wedge_args={}, **kwargs):
         da     = self.hdulist[1]['DA'][:]
         co     = self.hdulist[1]['CO'][:]
 
         if not ax: fig, ax = plt.subplots()
-        w = picca.wedgize.wedge(mumin=mumin,mumax=mumax) # To make plots of other wedges modify accordingly
+        w = picca.wedgize.wedge(mumin=mumin,mumax=mumax, **wedge_args) # To make plots of other wedges modify accordingly
         w.wedge(da,co)
         self.data_wedge = w.wedge(da,co)
         coef = self.data_wedge[0]**rfactor
