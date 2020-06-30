@@ -206,6 +206,18 @@ class FilesSkeleton:
     def DEC(self):
         return  np.concatenate( [hdulist[1].data['DEC'] for hdulist in self.hdulists] )
 
+    def plot_locations(self, ax=None, **kwargs):
+        '''Plot the locations of the QSO, they should be incorporated in self.RA and self.DEC
+        
+        Arguments:
+        ax              -- Set the axis where to plot it. By default it will create a new axis. 
+        kwargs          -- All unmatched kwargs will be sent to the plotter.
+        '''
+        if not ax: fig, ax = plt.subplots()
+        
+        Plotter.plot_locations(ax,self.RA,self.DEC,**kwargs)
+        return
+
     def plot_footprint(self,bins=100, ax=None, **kwargs):
         '''Plot the locations of the QSO, they should be incorporated in self.RA and self.DEC
         
@@ -252,7 +264,7 @@ class FilesSkeleton:
             else:
                 w = ((self.z>zbin[0]))
                 label = r'${}<z$'.format(zbin[0])
-            Plotter.plot_dist(ax,values=np.ravel(values[:,w]),bins=d_bins,weights=np.ravel(self.mask[:,w]),density=True,label=label)
+            Plotter.plot_dist(ax=ax,values=np.ravel(values[:,w]),bins=d_bins,weights=np.ravel(self.mask[:,w]),density=True,label=label)
 
         ax.set_xlabel('$\\delta$')
         ax.set_ylabel('$P(\delta)$')
@@ -566,6 +578,17 @@ class Plotter:
         cb = plt.colorbar()
         cb.set_label('Number of entries')
         return
+    
+    @staticmethod
+    def plot_locations(ax,RA,DEC,**kwargs):
+        phi = RA*np.pi/180
+        theta = np.pi/2 - DEC*np.pi/180
+        ax.scatter(phi/np.pi,np.cos(theta),**kwargs)
+        ax.set_xlim(0.0,2.0)
+        ax.set_ylim(-1.0,1.0)
+        ax.set_xlabel(r'$\phi/\pi$')
+        ax.set_ylabel(r'$\cos(\theta)$')
+        return phi, theta
     
     @staticmethod
     def plot_dist(values,bins,ax=None, **kwargs):
