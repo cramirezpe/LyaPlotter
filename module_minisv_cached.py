@@ -84,8 +84,8 @@ class zBestFilesMiniSV(FilesSkeleton):
             for tid in qsos_ids:
                 indxs.append( np.where(thids_dest==tid )[0][0] )
             return indxs
-        except IndexError as e:
-            print(thids_source)
+        except IndexError:
+            print(qsos_ids)
             raise
 
 class DrqFile(FilesSkeleton):
