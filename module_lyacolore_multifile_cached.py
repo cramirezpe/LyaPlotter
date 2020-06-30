@@ -187,12 +187,15 @@ class LyaCoLoReSim():
         # return self.picca_files[file_name]
 
 class FilesSkeleton:
-    def __init__(self, file_paths, parent_sim):
-        check_is_list(file_paths)
+    def __init__(self, file_paths, parent_sim=None):
+        if isinstance(file_paths, str):
+            file_paths = [file_paths]
 
         self.sim        = parent_sim
 
         self.file_paths = file_paths
+        self.N_files    = len(file_paths)
+
         self.hdulists   = [fits.open(path) for path in self.file_paths]
         
     @cached_property
@@ -211,8 +214,21 @@ class FilesSkeleton:
         kwargs          -- All unmatched kwargs will be sent to the plotter.
         '''
         if not ax: fig, ax = plt.subplots()
-      
+        
         Plotter.plot_locations(ax,self.RA,self.DEC,**kwargs)
+        return
+
+    def plot_footprint(self,bins=100, ax=None, **kwargs):
+        '''Plot the locations of the QSO, they should be incorporated in self.RA and self.DEC
+        
+        Arguments:
+        ax              -- Set the axis where to plot it. By default it will create a new axis. 
+        kwargs          -- All unmatched kwargs will be sent to the plotter.
+        '''
+        if not ax: fig, ax = plt.subplots()
+        Plotter.plot_footprint(self.RA,self.DEC,bins,ax=ax,**kwargs)
+        ax.set_xlabel(r'RA')
+        ax.set_ylabel(r'DEC')
         return
 
     def plot_qso_dist(self, ax=None, **kwargs):
@@ -225,7 +241,7 @@ class FilesSkeleton:
         if not ax: fig, ax = plt.subplots()
         bins = np.linspace(1.0,4.0,50)
 
-        Plotter.plot_dist(ax,self.z_qso, bins)
+        Plotter.plot_dist(self.z_qso, bins,ax=ax, **kwargs)
         ax.set_xlabel(r'$z$')
         ax.set_ylabel('# QSOs')
         return
@@ -248,7 +264,7 @@ class FilesSkeleton:
             else:
                 w = ((self.z>zbin[0]))
                 label = r'${}<z$'.format(zbin[0])
-            Plotter.plot_dist(ax,values=np.ravel(values[:,w]),bins=d_bins,weights=np.ravel(self.mask[:,w]),density=True,label=label)
+            Plotter.plot_dist(ax=ax,values=np.ravel(values[:,w]),bins=d_bins,weights=np.ravel(self.mask[:,w]),density=True,label=label)
 
         ax.set_xlabel('$\\delta$')
         ax.set_ylabel('$P(\delta)$')
@@ -315,7 +331,7 @@ class FilesSkeleton:
         if not ax:                  fig, ax = plt.subplots()
 
         return Plotter.plot_std_all_skewers(ax,axis_values, values_array, value_name, self.mask, kwargs_hline=kwargs_hline, **kwargs)
-        
+
 
 class CoLoReFiles(FilesSkeleton):
     def __init__(self, file_paths, lr_max, parent_sim):
@@ -552,6 +568,18 @@ class PiccaStyleFiles(FilesSkeleton):
         
 class Plotter:
     @staticmethod
+    def plot_footprint(RA,DEC,bins,ax=None,**kwargs):
+        if not ax: fig, ax = plt.subplots()
+
+        my_cmap = plt.cm.jet
+        my_cmap.set_under('w',1)
+
+        plt.hist2d(RA,DEC,bins=bins, vmin=1, cmap=my_cmap)
+        cb = plt.colorbar()
+        cb.set_label('Number of entries')
+        return
+    
+    @staticmethod
     def plot_locations(ax,RA,DEC,**kwargs):
         phi = RA*np.pi/180
         theta = np.pi/2 - DEC*np.pi/180
@@ -563,9 +591,10 @@ class Plotter:
         return phi, theta
     
     @staticmethod
-    def plot_dist(ax,values,bins,histtype= 'step', **kwargs):
-        ax.hist(values,bins,histtype =histtype, **kwargs)
-        return bins,values
+    def plot_dist(values,bins,ax=None, **kwargs):
+        if not ax: fig, ax = plt.subplots()
+        ax.hist(values,bins, **kwargs)
+        return
 
     @staticmethod
     def plot_skewer(ax, axis_values,values,value_name,weights=None,print_info=False, **kwargs):
