@@ -75,8 +75,17 @@ class FilesBase:
         self.file_paths = file_paths
         self.N_files    = len(file_paths)
 
-        self.hdulists   = [fits.open(path) for path in self.file_paths]
-        
+    @contextmanager
+    def open_hdulists(self):
+        try:
+            self.hdulists = [fits.open(path) for path in self.file_paths]
+            yield self.hdulists
+        except: 
+            print('Opening fits files failed:',hdulists)
+            raise
+        finally:
+            [x.close() for x in self.hdulists]
+
     @cached_property
     def RA(self):
         '''Cached property obtaining RA from files
@@ -84,7 +93,8 @@ class FilesBase:
         Returns:
             A list of RA values (floats)
         '''
-        return  np.concatenate( [hdulist[1].data['RA'] for hdulist in self.hdulists] )
+        with self.open_hdulists():
+            return  np.concatenate( [hdulist[1].data['RA'] for hdulist in self.hdulists] )
 
     @cached_property
     def DEC(self):
@@ -93,7 +103,13 @@ class FilesBase:
         Returns:
             A list of DEC values (floats)
         '''
-        return  np.concatenate( [hdulist[1].data['DEC'] for hdulist in self.hdulists] )
+        with self.open_hdulists():
+            return  np.concatenate( [hdulist[1].data['DEC'] for hdulist in self.hdulists] )
+
+    @cached_property
+    def z(self):
+        with self.open_hdulists():
+                return np.concatenate( [hdulist[1].data['Z'] for hdulist in self.hdulists] )
 
     def plot_locations(self, ax=None, **kwargs):
         '''Plot the locations from the file, they should be incorporated in self.RA and self.DEC
@@ -256,7 +272,8 @@ class CoLoReFiles(FilesSkewerBase):
 
     @cached_property
     def z(self):
-        return  np.concatenate( [hdulist[1].data['Z_COSMO'] for hdulist in self.hdulists] )
+        with self.open_hdulists():
+            return  np.concatenate( [hdulist[1].data['Z_COSMO'] for hdulist in self.hdulists] )
 
     @cached_property
     def N_obj(self):
@@ -273,7 +290,8 @@ class CoLoReFiles(FilesSkewerBase):
 
     @cached_property
     def z_skewer(self):
-        return  np.asarray( self.hdulists[0][4].data['Z'])
+        with self.open_hdulists():
+            return  np.asarray( self.hdulists[0][4].data['Z'])
     
     @cached_property
     def wavelength(self):
@@ -285,11 +303,13 @@ class CoLoReFiles(FilesSkewerBase):
 
     @cached_property
     def delta_skewers(self):
-        return  np.vstack( [hdulist[2].data for hdulist in self.hdulists] )
+        with self.open_hdulists():
+            return  np.vstack( [hdulist[2].data for hdulist in self.hdulists] )
             
     @cached_property
     def vrad(self):
-        return  np.vstack( [hdulist[3].data for hdulist in self.hdulists] )
+        with self.open_hdulists():
+            return  np.vstack( [hdulist[3].data for hdulist in self.hdulists] )
 
 class TruthFiles(FilesBase):
     '''TruthFiles can be handled with the information given in FilesBase'''
@@ -317,11 +337,13 @@ class TransmissionFiles(FilesSkewerBase):
 
     @cached_property
     def z(self):
-        return  np.concatenate( [hdulist[1].data['Z']        for hdulist in self.hdulists] )
+        with self.open_hdulists():
+            return  np.concatenate( [hdulist[1].data['Z']        for hdulist in self.hdulists] )
 
     @cached_property
     def z_noRSD(self):
-        return  np.concatenate( [hdulist[1].data['Z_noRSD']  for hdulist in self.hdulists] )
+        with self.open_hdulists():
+            return  np.concatenate( [hdulist[1].data['Z_noRSD']  for hdulist in self.hdulists] )
 
     @cached_property
     def N_obj(self):
@@ -329,7 +351,8 @@ class TransmissionFiles(FilesSkewerBase):
     
     @cached_property
     def id(self):
-        return  np.concatenate( [hdulist[1].data['MOCKID']   for hdulist in self.hdulists] )
+        with self.open_hdulists():
+            return  np.concatenate( [hdulist[1].data['MOCKID']   for hdulist in self.hdulists] )
 
     @cached_property
     def z_skewer(self):
@@ -337,7 +360,8 @@ class TransmissionFiles(FilesSkewerBase):
     
     @cached_property
     def wavelength(self):
-        return  self.hdulists[0][2].data
+        with self.open_hdulists():
+            return  self.hdulists[0][2].data
 
     @cached_property
     def mask(self):
@@ -345,11 +369,13 @@ class TransmissionFiles(FilesSkewerBase):
 
     @cached_property
     def lya_absorption(self):
-        return  np.vstack(  [hdulist['F_LYA'].data for hdulist in self.hdulists] )
+        with self.open_hdulists():
+            return  np.vstack(  [hdulist['F_LYA'].data for hdulist in self.hdulists] )
 
     @cached_property
     def lyb_absorption(self):
-        return  np.vstack(  [hdulist['F_LYB'].data for hdulist in self.hdulists] )
+        with self.open_hdulists():
+            return  np.vstack(  [hdulist['F_LYB'].data for hdulist in self.hdulists] )
 
     @cached_property
     def delta_lya_absorption(self):
@@ -376,7 +402,8 @@ class GaussianCoLoReFiles(FilesSkewerBase):
 
     @cached_property
     def z(self):
-        return  np.concatenate( [ hdulist[1].data['Z_COSMO']  for hdulist in self.hdulists] )
+        with self.open_hdulists():
+            return  np.concatenate( [ hdulist[1].data['Z_COSMO']  for hdulist in self.hdulists] )
 
     @cached_property
     def N_obj(self):
@@ -384,11 +411,13 @@ class GaussianCoLoReFiles(FilesSkewerBase):
     
     @cached_property
     def id(self):
-        return  np.concatenate( [ hdulist[1].data['MOCKID']   for hdulist in self.hdulists] )
+        with self.open_hdulists():
+            return  np.concatenate( [ hdulist[1].data['MOCKID']   for hdulist in self.hdulists] )
 
     @cached_property
     def z(self):
-        return  self.hdulists[0][4].data['Z']
+        with self.open_hdulists():
+            return  self.hdulists[0][4].data['Z']
     
     @cached_property
     def wavelength(self):
@@ -400,11 +429,13 @@ class GaussianCoLoReFiles(FilesSkewerBase):
 
     @cached_property
     def delta_skewers(self):
-        return  np.vstack( [hdulist[2].data for hdulist in self.hdulists] )
+        with self.open_hdulists():
+            return  np.vstack( [hdulist[2].data for hdulist in self.hdulists] )
 
     @cached_property
     def vrad(self):
-        return  np.vstack( [hdulist[3].data for hdulist in self.hdulists] )
+        with self.open_hdulists():
+            return  np.vstack( [hdulist[3].data for hdulist in self.hdulists] )
         
 class PiccaStyleFiles(FilesSkewerBase):
     '''Class to handle PiccaStyle files output by LyaCoLoRe
@@ -426,7 +457,8 @@ class PiccaStyleFiles(FilesSkewerBase):
 
     @cached_property
     def z(self):    
-        return  np.concatenate( [ hdulist[3].data['Z']        for hdulist in self.hdulists] )
+        with self.open_hdulists():
+            return  np.concatenate( [ hdulist[3].data['Z']        for hdulist in self.hdulists] )
 
     @cached_property
     def N_obj(self):
@@ -434,7 +466,8 @@ class PiccaStyleFiles(FilesSkewerBase):
     
     @cached_property
     def id(self):
-        return  np.concatenate( [ hdulist[3].data['THING_ID'] for hdulist in self.hdulists] )
+        with self.open_hdulists():
+            return  np.concatenate( [ hdulist[3].data['THING_ID'] for hdulist in self.hdulists] )
 
     @cached_property
     def z_skewer(self):
@@ -442,7 +475,8 @@ class PiccaStyleFiles(FilesSkewerBase):
     
     @cached_property
     def wavelength(self):
-        return  10**self.hdulists[0][2].data
+        with self.open_hdulists():
+            return  10**self.hdulists[0][2].data
 
     @cached_property
     def mask(self):
@@ -450,17 +484,20 @@ class PiccaStyleFiles(FilesSkewerBase):
 
     @cached_property
     def values(self):
-        tmp = np.vstack( [hdulist[0].data   for hdulist in self.hdulists] )
-        return tmp.transpose()
+        with self.open_hdulists():
+            tmp = np.vstack( [hdulist[0].data   for hdulist in self.hdulists] )
+            return tmp.transpose()
 
     # RA and DEC is defined with the hdulist 3 so I should redifine them 
     @cached_property
     def RA(self):
-        return  np.concatenate( [hdulist[3].data['RA'] for hdulist in self.hdulists] )
+        with self.open_hdulists():
+            return  np.concatenate( [hdulist[3].data['RA'] for hdulist in self.hdulists] )
 
     @cached_property
     def DEC(self):
-        return  np.concatenate( [hdulist[3].data['DEC'] for hdulist in self.hdulists] )
+        with self.open_hdulists():
+            return  np.concatenate( [hdulist[3].data['DEC'] for hdulist in self.hdulists] )
 
 
 class Spectra(FilesSkewerBase):
@@ -473,6 +510,9 @@ class Spectra(FilesSkewerBase):
         zbest_files (list of str): List of paths to the different zbest_files
         lr_max (float): Set maximum wavelength for masking purposes 
         redhisft_to_use (str): We need a redshift for the Quasar to compute quantities (truth or best).
+
+        truth (Files object): Object with the informatoin from the truth files.
+        zbest (Files object): Object with the information from the zbest files. 
 
     '''
     def __init__(self, arm, spectra_files, truth_files, zbest_files, lr_max=1200., redshift_to_use='zbest', parent_sim=None):
@@ -496,21 +536,13 @@ class Spectra(FilesSkewerBase):
         self.arm             = arm.lower()
         self.lr_max          = lr_max
         self.redshift_to_use = redshift_to_use.lower()
-       
-    @cached_property
-    def z_best(self):
-        return np.concatenate( [hdulist[1].data['Z'] for hdulist in self.zbest.hdulists] )
-
-    @cached_property
-    def z_truth(self):
-        return np.concatenate( [hdulist[1].data['Z'] for hdulist in self.truth.hdulists] )
 
     @cached_property
     def z(self):
         if self.redshift_to_use == 'best':
-            return self.z_best
+            return self.zbest.z
         else:
-            return self.z_truth
+            return self.truth.z
 
     @cached_property
     def N_obj(self):
@@ -518,7 +550,8 @@ class Spectra(FilesSkewerBase):
     
     @cached_property
     def id(self):
-        return  np.concatenate( [hdulist[1].data['TARGETID']   for hdulist in self.hdulists] )
+        with self.open_hdulists():
+            return  np.concatenate( [hdulist[1].data['TARGETID']   for hdulist in self.hdulists] )
 
     @cached_property
     def z_skewer(self):
@@ -526,7 +559,8 @@ class Spectra(FilesSkewerBase):
     
     @cached_property
     def wavelength(self):
-        return  self.hdulists[0]['{}_WAVELENGTH'.format(self.arm.upper())].data
+        with self.open_hdulists():
+            return  self.hdulists[0]['{}_WAVELENGTH'.format(self.arm.upper())].data
 
     @cached_property
     def mask(self):
@@ -534,11 +568,14 @@ class Spectra(FilesSkewerBase):
 
     @cached_property
     def RA(self):
-        return  np.concatenate( [hdulist[1].data['TARGET_RA']  for hdulist in self.hdulists] )
+        with self.open_hdulists():
+            return  np.concatenate( [hdulist[1].data['TARGET_RA']  for hdulist in self.hdulists] )
 
     def DEC(self):
-        return  np.concatenate( [hdulist[1].data['TARGET_DEC'] for hdulist in self.hdulists] )
+        with self.open_hdulists():
+            return  np.concatenate( [hdulist[1].data['TARGET_DEC'] for hdulist in self.hdulists] )
 
     @cached_property
     def flux(self):
-        return  np.vstack( [hdulist['{}_FLUX'.format(self.arm.upper())].data for hdulist in self.hdulists ] )
+        with self.open_hdulists():
+            return  np.vstack( [hdulist['{}_FLUX'.format(self.arm.upper())].data for hdulist in self.hdulists ] )
