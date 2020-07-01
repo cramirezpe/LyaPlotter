@@ -1,3 +1,6 @@
+'''
+    Module under development, to be documented
+'''
 from module_lyacolore_multifile_cached import (cached_property, FilesSkeleton)
 import numpy as np
 from astropy.io import fits
