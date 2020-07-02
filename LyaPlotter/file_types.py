@@ -17,6 +17,14 @@ log = logging.getLogger(__name__)
 
 @contextmanager
 def open_hdulists(file_paths):
+    '''Context manager to open fits files and close it afterwards
+
+    Args:
+        file_paths (list of str): Paths to the different fits files.
+        
+    Returns:
+        List of all the (opened) fits files to handle them.
+    '''
     try:
         hdulists = [fits.open(path) for path in file_paths]
         yield hdulists
