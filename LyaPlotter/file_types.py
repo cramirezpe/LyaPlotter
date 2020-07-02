@@ -5,6 +5,7 @@
 '''
 
 from lyacolore import utils
+import matplotlib.pyplot as plt
 import logging
 from astropy.io import fits
 import numpy as np
@@ -14,25 +15,6 @@ from contextlib import contextmanager
 
 
 log = logging.getLogger(__name__)
-
-@contextmanager
-def open_hdulists(file_paths):
-    '''Context manager to open fits files and close it afterwards
-
-    Args:
-        file_paths (list of str): Paths to the different fits files.
-        
-    Returns:
-        List of all the (opened) fits files to handle them.
-    '''
-    try:
-        hdulists = [fits.open(path) for path in file_paths]
-        yield hdulists
-    except: 
-        print('Opening fits files failed:',hdulists)
-        raise
-    finally:
-        [x.close for x in hdulists]
 
 class cached_property(object):
     """
@@ -85,11 +67,19 @@ class FilesBase:
 
     @contextmanager
     def open_hdulists(self):
+        '''Context manager to open fits files and close it afterwards
+
+        Args:
+            file_paths (list of str): Paths to the different fits files.
+            
+        Returns:
+            List of all the (opened) fits files to handle them.
+        '''
         try:
             self.hdulists = [fits.open(path) for path in self.file_paths]
             yield self.hdulists
         except: 
-            print('Opening fits files failed:',hdulists)
+            print('Opening fits files failed:',self.file_paths)
             raise
         finally:
             [x.close() for x in self.hdulists]
