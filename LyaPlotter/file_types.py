@@ -118,6 +118,10 @@ class FilesBase:
     def z(self):
         with self.open_hdulists():
                 return np.concatenate( [hdulist[1].data['Z'] for hdulist in self.hdulists] )
+    
+    @cached_property
+    def N_obj(self):
+        return  len(self.z)
 
     def plot_locations(self, ax=None, **kwargs):
         '''Plot the locations from the file, they should be incorporated in self.RA and self.DEC
@@ -282,10 +286,6 @@ class CoLoReFiles(FilesSkewerBase):
     def z(self):
         with self.open_hdulists():
             return  np.concatenate( [hdulist[1].data['Z_COSMO'] for hdulist in self.hdulists] )
-
-    @cached_property
-    def N_obj(self):
-        return  len(self.z)
     
     @cached_property
     def id(self):
@@ -352,10 +352,6 @@ class TransmissionFiles(FilesSkewerBase):
     def z_noRSD(self):
         with self.open_hdulists():
             return  np.concatenate( [hdulist[1].data['Z_noRSD']  for hdulist in self.hdulists] )
-
-    @cached_property
-    def N_obj(self):
-        return  len(self.z)
     
     @cached_property
     def id(self):
@@ -412,10 +408,6 @@ class GaussianCoLoReFiles(FilesSkewerBase):
     def z(self):
         with self.open_hdulists():
             return  np.concatenate( [ hdulist[1].data['Z_COSMO']  for hdulist in self.hdulists] )
-
-    @cached_property
-    def N_obj(self):
-        return  len(self.z)
     
     @cached_property
     def id(self):
@@ -467,10 +459,6 @@ class PiccaStyleFiles(FilesSkewerBase):
     def z(self):    
         with self.open_hdulists():
             return  np.concatenate( [ hdulist[3].data['Z']        for hdulist in self.hdulists] )
-
-    @cached_property
-    def N_obj(self):
-        return  len(self.z)
     
     @cached_property
     def id(self):
@@ -551,11 +539,7 @@ class Spectra(FilesSkewerBase):
             return self.zbest.z
         else:
             return self.truth.z
-
-    @cached_property
-    def N_obj(self):
-        return
-    
+   
     @cached_property
     def id(self):
         with self.open_hdulists():
