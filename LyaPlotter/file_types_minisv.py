@@ -8,6 +8,8 @@ import numpy as np
 
 class DrqFile(FilesBase):
     ''' class to handle data from catalogue files.
+
+    It uses the object CoaddFilesMiniSV to obtain information only available in coadd files. It uses the hacked best_night inside the field 'mjd' to match the correct coadd file.
     '''
 
     def __init__(self, file_paths):
