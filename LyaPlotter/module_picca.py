@@ -1,3 +1,7 @@
+'''
+    to be documented
+'''
+
 import scipy as sp
 import fitsio
 import matplotlib.pyplot as plt
@@ -6,7 +10,7 @@ import glob
 import os
 from pathlib import Path
 
-class PlotterSkeleton():
+class PlotterBase():
     def __init__(self,path,name=None):
         self.__name__   = name if name else path
         self.path       = path
@@ -19,7 +23,7 @@ class PlotterSkeleton():
             sim_paths.add( path )
         return sorted(list(sim_paths), key=lambda folder: os.stat(folder).st_ctime)
 
-class DeltasPlotter(PlotterSkeleton):
+class DeltasPlotter(PlotterBase):
     ''' 
     Class to store the usual plots from the delta_attributes.fits.gz output. It should be initialized through:
         object = DeltasPlotter(path, name)
@@ -38,7 +42,7 @@ class DeltasPlotter(PlotterSkeleton):
     @classmethod
     def search(cls,path):
         ''' Classmethod to search delta_attributes outputs under the given path. They are returned sorted by date.''' 
-        return PlotterSkeleton.search(path,'delta_attributes.fits.gz')
+        return PlotterBase.search(path,'delta_attributes.fits.gz')
 
     def __str__():
         return 0
@@ -112,7 +116,7 @@ class DeltasPlotter(PlotterSkeleton):
         ax.set_ylabel(r'$\mathrm{\overline{Flux}}$')
         return 
 
-class cfPlotter(PlotterSkeleton):
+class cfPlotter(PlotterBase):
     ''' 
     Class to store the usual plots from the e_cf.fits.gz output. It should be initialized through:
         object = cfPlotter(path, name)
@@ -124,7 +128,7 @@ class cfPlotter(PlotterSkeleton):
     @classmethod
     def search(cls,path):
         ''' Classmethod to search outputs under the given path. They are returned sorted by date.''' 
-        return PlotterSkeleton.search(path,'e_cf.fits.gz')
+        return PlotterBase.search(path,'e_cf.fits.gz')
 
     def plot(self, rfactor=0, mumin=0., mumax=1, ax=None, title=False, wedge_args={}, **kwargs):
         da     = self.hdulist[1]['DA'][:]
@@ -143,7 +147,7 @@ class cfPlotter(PlotterSkeleton):
         if title: ax.set_title('{0} < $\mu$ < {1}'.format(mumin, mumax))
         return
 
-class cf1dPlotter(PlotterSkeleton):
+class cf1dPlotter(PlotterBase):
     ''' 
     Class to store the usual plots from the cf.fits.gz output. It should be initialized through:
         object = cf1dPlotter(path, name)
@@ -163,7 +167,7 @@ class cf1dPlotter(PlotterSkeleton):
     @classmethod
     def search(cls,path):
         ''' Classmethod to search outputs under the given path. They are returned sorted by date.''' 
-        return PlotterSkeleton.search(path,'cf.fits.gz')
+        return PlotterBase.search(path,'cf.fits.gz')
 
     def evolution_variance(self, ax=None, **kwargs):
         if not ax: fig, ax = plt.subplots()
@@ -199,7 +203,7 @@ class cf1dPlotter(PlotterSkeleton):
         ax.grid()
         return
 
-class xcfPlotter(PlotterSkeleton):
+class xcfPlotter(PlotterBase):
     ''' 
     Class to store the usual plots from the e_xcf.fits.gz output. It should be initialized through:
         object = cf1dPlotter(path, name)
@@ -211,7 +215,7 @@ class xcfPlotter(PlotterSkeleton):
     @classmethod
     def search(cls,path):
         ''' Classmethod to search outputs under the given path. They are returned sorted by date.''' 
-        return PlotterSkeleton.search(path,'e_xcf.fits.gz')
+        return PlotterBase.search(path,'e_xcf.fits.gz')
       
     def plot(self, rfactor=0, mumin=0., mumax=1., ax=None, title=False, **kwargs):
         da = self.hdulist[1]['DA'][:]
