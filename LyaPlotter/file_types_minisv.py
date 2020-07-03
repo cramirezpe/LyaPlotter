@@ -205,8 +205,9 @@ class zBestFilesMiniSV(FilesBase):
             return  np.concatenate( [hdulist[1].data['Z'][idx] for hdulist,idx in zip(self.hdulists, self.idx_qsos_1)] )
 
     @cached_property
-    def N_obj(self):
-        return len(self.z)
+    def tile(self):
+        with self.open_hdulists():
+            return np.concatenate( [hdulist[2].data['TILEID'][idx] for hdulist,idx in zip(self.hdulists, self.idx_qsos_2)] )
 
     @cached_property
     def flux_r(self):
