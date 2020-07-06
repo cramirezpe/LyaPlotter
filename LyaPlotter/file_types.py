@@ -138,7 +138,7 @@ class FilesBase:
         ax.set_ylabel(r'DEC')
         return
 
-    def plot_dist(self, ax=None, **kwargs):
+    def plot_dist(self, ax=None, bins=None, **kwargs):
         '''Return the n(z) distribution of objects assuming that it is stored in the variable self.z
         
         Arguments:
@@ -146,7 +146,7 @@ class FilesBase:
             **kwargs (): Additional arguments to the plot.
         '''
         if not ax: fig, ax = plt.subplots()
-        bins = np.linspace(1.0,4.0,50)
+        if not bins: bins = np.linspace(1.0,4.0,50)
 
         Plotter.plot_dist(self.z, bins,ax=ax, **kwargs)
         ax.set_xlabel(r'$z$')
