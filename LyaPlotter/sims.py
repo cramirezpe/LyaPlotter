@@ -5,7 +5,7 @@
 '''
 
 from lyacolore import utils
-from .file_types import *
+from LyaPlotter.file_types import *
 import glob
 import os
 import logging

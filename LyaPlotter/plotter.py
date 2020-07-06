@@ -3,7 +3,7 @@
 '''
 import matplotlib.pyplot as plt
 import numpy as np
-from .computations import Computations
+from LyaPlotter.computations import Computations
 
 class Plotter:
     @staticmethod

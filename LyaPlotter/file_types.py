@@ -9,8 +9,8 @@ import matplotlib.pyplot as plt
 import logging
 from astropy.io import fits
 import numpy as np
-from .plotter import Plotter
-from .computations import Computations
+from LyaPlotter.plotter import Plotter
+from LyaPlotter.computations import Computations
 from contextlib import contextmanager
 
 
@@ -129,7 +129,7 @@ class FilesBase:
         '''Plot the locations of the QSO in a heatmap, they should be incorporated in self.RA and self.DEC
         
         Args:
-            bins (int, optional): Number of bins to the footprint.
+            bins (int, obptional): Number of bins to the footprint.
             **kwargs (optional): Additional arguments to the plot.
         '''
         if not ax: fig, ax = plt.subplots()
