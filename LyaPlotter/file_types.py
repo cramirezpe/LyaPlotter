@@ -146,7 +146,7 @@ class FilesBase:
             **kwargs (): Additional arguments to the plot.
         '''
         if not ax: fig, ax = plt.subplots()
-        if not bins: bins = np.linspace(1.0,4.0,50)
+        if bins is None: bins = np.linspace(1.0,4.0,50)
 
         Plotter.plot_dist(self.z, bins,ax=ax, **kwargs)
         ax.set_xlabel(r'$z$')
