@@ -1,11 +1,12 @@
 '''
     Module build to help making plots
 '''
+
 import matplotlib.pyplot as plt
 import numpy as np
 from LyaPlotter.computations import Computations
 
-class Plotter:
+class Plotter: #pragma: no cover
     @staticmethod
     def plot_footprint(RA,DEC,bins,ax=None,**kwargs):
         if not ax: fig, ax = plt.subplots()
