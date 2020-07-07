@@ -49,6 +49,13 @@ class FilesBase:
         DEC (list of float): DEC from files.
     '''
 
+    data_dictionary = {
+        'RA'    : (1,   'RA',   False,  False),
+        'DEC'   : (1,   'DEC',  False,  False),
+        'z'     : (1,   'Z',    False,  False),
+    }
+
+
     def __init__(self, file_paths, parent_sim=None, downsampling =1):
         '''Inits the File class setting the different information
 
@@ -86,8 +93,14 @@ class FilesBase:
         finally:
             [x.close() for x in self.hdulists]
 
-    def get_data(self, name, field=None, vstack=False):
+    def get_data(self, name, field=None, vstack=False, only_one=False):
         with self.open_hdulists():
+            if only_one:
+                if not field:
+                    return np.asarray( self.hdulists[0][name].data )
+                else:
+                    return np.asarray( self.hdulists[0][name].data[field])
+
             if self.downsampling != 1:
                 output = list()
                 for i,hdulist in enumerate(self.hdulists):
@@ -107,8 +120,7 @@ class FilesBase:
             if vstack: 
                 return np.vstack( output ) 
             else:
-                return np.concatenate( output ) 
-
+                return np.concatenate( output )   
 
     @cached_property
     def RA(self):
@@ -117,7 +129,7 @@ class FilesBase:
         Returns:
             A list of RA values (floats)
         '''
-        return self.get_data(1,'RA')
+        return self.get_data((*self.data_dictionary['RA']))
 
     @cached_property
     def DEC(self):
@@ -126,11 +138,12 @@ class FilesBase:
         Returns:
             A list of DEC values (floats)
         '''
-        return self.get_data(1,'DEC')
+        return self.get_data((*self.data_dictionary['DEC']))
 
     @cached_property
     def z(self):
-        return self.get_data(1,'Z')
+        return self.get_data((*self.data_dictionary['z']))
+            
    
     @cached_property
     def N_obj(self):
@@ -188,7 +201,30 @@ class FilesSkewerBase(FilesBase):
     '''
     wavelength = None
     mask       = None
-    id         = None
+
+    @cached_property
+    def delta_skewers(self):
+        return self.get_data(*self.data_dictionary['delta_skewers'])
+
+    @cached_property
+    def z_skewer(self):
+        '''Obtain the pixelization of the fits file (in z)
+
+        This is the same for every fits file so I should only grab it from one case
+        '''
+        return self.get_data(*self.data_dictionary['z_skewer'])
+
+    @cached_property
+    def wavelength(self):
+        '''Obtain the pixelization of the fits file (in z)
+
+        This is the same for every fits file so I should only grab it from one case
+        '''
+        return self.get_data(*self.data_dictionary['wavelength'])
+
+    @cached_property
+    def id(self):
+        return self.get_data((*self.data_dictionary['id']))
 
     def single_skewer(self, values_array, axis_values=None, value_name='', ax=None, mockid=None, **kwargs): #pragma: no cover
         '''Plot a single skewer from the FileClass. It returns the axis values and the values plotted. 
@@ -286,6 +322,16 @@ class CoLoReFiles(FilesSkewerBase):
     Attributes (extending FilesSkewerBase):
         lr_max (float): Maximum wavelength for masking.
     '''
+
+    data_dictionary = {
+        'RA'            : (1,   'RA',       False,  False),
+        'DEC'           : (1,   'DEC',      False,  False),
+        'z'             : (1,   'Z_COSMO',  False,  False),
+        'delta_skewers' : (2,   None,       True,   False),
+        'vrad'          : (3,   None,       True,   False),
+        'z_skewer'      : (4,   'Z',        False,  True)
+    }
+
     def __init__(self, file_paths, lr_max, parent_sim,downsampling):
         '''Inits the CoLoReFiles object
 
@@ -296,10 +342,6 @@ class CoLoReFiles(FilesSkewerBase):
         self.lr_max             = lr_max
 
     @cached_property
-    def z(self):
-        return self.get_data(1,'Z_COSMO')
-    
-    @cached_property
     def id(self): #pragma: no cover
         '''Id of each skewer
 
@@ -307,15 +349,6 @@ class CoLoReFiles(FilesSkewerBase):
         '''
         return  list(range(self.N_obj))
 
-    @cached_property
-    def z_skewer(self):
-        '''Obtain the pixelization of the fits file (in z)
-
-        This is the same for every fits file so I should only grab it from one case
-        '''
-        with self.open_hdulists():
-            return  np.asarray( self.hdulists[0][4].data['Z'])
-    
     @cached_property
     def wavelength(self):
         return  utils.lya_rest * (1 + self.z_skewer)
@@ -325,12 +358,8 @@ class CoLoReFiles(FilesSkewerBase):
         return  utils.make_IVAR_rows(self.lr_max, self.z, np.log10(utils.lya_rest*(1+self.z_skewer)))
 
     @cached_property
-    def delta_skewers(self):
-        return self.get_data(2, vstack=True)
-            
-    @cached_property
     def vrad(self):
-        return self.get_data(3, vstack=True)
+        return self.get_data(*self.data_dictionary['vrad'])
 
 class TruthFiles(FilesBase):
     '''TruthFiles can be handled with the information given in FilesBase'''
@@ -347,6 +376,19 @@ class TransmissionFiles(FilesSkewerBase):
         lr_max (float): Maximum wavelength for masking.
     '''
 
+    data_dictionary = {
+        'RA'            : (1,       'RA',       False,  False),
+        'DEC'           : (1,       'DEC',      False,  False),
+        'z'             : (1,       'Z',        False,  False),
+        'Z_noRSD'       : (1,       'Z_noRSD',  False,  False),
+        'id'            : (1,       'MOCKID',   False,  False),
+        'delta_skewers' : (2,       None,       True,   False),
+        'vrad'          : (3,       None,       True,   False),
+        'lya_absorption': ('F_LYA', None,       True,   False),
+        'lyb_absorption': ('F_LYB', None,       True,   False),
+        'wavelength'    : (2,       None,       True,   True)
+    }
+
     def __init__(self, file_paths, lr_max, parent_sim, downsampling):
         '''Inits the TransmissionFiles object
 
@@ -357,41 +399,24 @@ class TransmissionFiles(FilesSkewerBase):
         self.lr_max         = lr_max
 
     @cached_property
-    def z(self):
-        return self.get_data(1,'Z')
-
-    @cached_property
     def z_noRSD(self):
-        return self.get_data(1,'Z_noRSD')
+        return self.get_data(*self.data_dictionary['Z_noRSD'])
     
-    @cached_property
-    def id(self):
-        return self.get_data(1,'MOCKID')
-
     @cached_property
     def z_skewer(self):
         return  (self.wavelength - utils.lya_rest)/utils.lya_rest
     
-    @cached_property
-    def wavelength(self):
-        '''Obtain the pixelization of the fits file (in wavelength)
-
-        This is the same for every fits file so I should only grab it from one case
-        '''
-        with self.open_hdulists():
-            return  self.hdulists[0][2].data
-
     @cached_property
     def mask(self):
         return  utils.make_IVAR_rows(self.lr_max,self.z,np.log10(self.wavelength))
 
     @cached_property
     def lya_absorption(self):  
-        return self.get_data('F_LYA', vstack=True)
+        return self.get_data(*self.data_dictionary['lya_absorption'])
  
     @cached_property
     def lyb_absorption(self):
-        return self.get_data('F_LYB', vstack=True)
+        return self.get_data(*self.data_dictionary['lyb_absorption'])
 
     @cached_property
     def delta_lya_absorption(self):
@@ -401,49 +426,29 @@ class TransmissionFiles(FilesSkewerBase):
     def delta_lyb_absorption(self):
         return  self.lyb_absorption/Computations.mean_per_pixel(self.lyb_absorption,mask=False)
 
-class GaussianCoLoReFiles(FilesSkewerBase):
-    '''Class to handle GaussianCoLoRe files output by LyaCoLoRe
-
-    Attributes (extending FilesSkewerBase):
-        lr_max (float): Maximum wavelength for masking.
-    '''
-    def __init__(self,file_paths, lr_max, parent_sim, downsampling):
-        '''Inits the GaussianCoLoReFiles object
-
-        Args (extending FilesBase init args):
-            lr_max (float): Maximum wavelength for masking.
-        '''
-        FilesBase.__init__(self, file_paths, parent_sim, downsampling)
-        self.lr_max             = lr_max
-
-    @cached_property
-    def z(self):
-        return self.get_data(1,'Z_COSMO')
-    
-    @cached_property
-    def id(self):
-        return self.get_data(1,'MOCKID')
-
-    @cached_property
-    def z_skewer(self):
-        with self.open_hdulists():
-            return  self.hdulists[0][4].data['Z']
-    
-    @cached_property
-    def wavelength(self):
-        return   utils.lya_rest * (1+self.z_skewer)
-
-    @cached_property
-    def mask(self):
-        return  utils.make_IVAR_rows(self.lr_max,self.z,np.log10(utils.lya_rest*(1+self.z)))
-
-    @cached_property
-    def delta_skewers(self):
-        return self.get_data(2,vstack=True)
-
     @cached_property
     def vrad(self):
-        return self.get_data(3, vstack=True)
+        return self.get_data(*self.data_dictionary['vrad'])
+
+class GaussianCoLoReFiles(CoLoReFiles):
+    '''Class to handle GaussianCoLoRe files output by LyaCoLoRe. 
+
+    It behaves exactly as the CoLoReFiles class but the data dictionary should be changed. (Also the id can be recovered from the fits file now) 
+    '''
+    data_dictionary = {
+        'RA'            : (1,   'RA',       False,  False),
+        'DEC'           : (1,   'DEC',      False,  False),
+        'z'             : (1,   'Z_COSMO',  False,  False),
+        'id'            : (1,   'MOCKID',   False,  False),
+        'delta_skewers' : (2,   None,       True,   False),
+        'vrad'          : (3,   None,       True,   False),
+        'z_skewer'      : (4,   'Z',        False,  True)
+    }
+
+    @cached_property
+    def id(self):
+        return self.get_data((*self.data_dictionary['id']))
+  
 
 class PiccaStyleFiles(FilesSkewerBase):
     '''Class to handle PiccaStyle files output by LyaCoLoRe
@@ -452,6 +457,16 @@ class PiccaStyleFiles(FilesSkewerBase):
         lr_max (float): Maximum wavelength for masking.
         name (str): Name of the PiccaStyle file (e.g. picca-flux-noRSD-notnorm)
     '''
+
+    data_dictionary = {
+        'RA'            : (3,   'RA',       False,  False),
+        'DEC'           : (3,   'DEC',      False,  False),
+        'z'             : (3,   'Z',        False,  False),
+        'id'            : (3,   'THING_ID', False,  False),
+        'wavelength'    : (2,   None,       False,  True),
+        'values'        : (0,   None,       True,   False)
+    }
+
     def __init__(self,file_paths,lr_max, name, parent_sim, downsampling):
         '''Inits the PiccaStyleFiles object
 
@@ -464,39 +479,20 @@ class PiccaStyleFiles(FilesSkewerBase):
         self.lr_max         = lr_max
 
     @cached_property
-    def z(self):    
-        return self.get_data(3,'Z')
-    
-    @cached_property
-    def id(self):
-        return self.get_data(3,'THING_ID')
+    def wavelength(self):
+        return 10**self.get_data(*self.data_dictionary['wavelength'])
 
     @cached_property
     def z_skewer(self):
         return  (self.wavelength - utils.lya_rest)/utils.lya_rest
     
     @cached_property
-    def wavelength(self):
-        with self.open_hdulists():
-            return  10**self.hdulists[0][2].data
-
-    @cached_property
     def mask(self):
         return  utils.make_IVAR_rows(self.lr_max,self.z,np.log10(self.wavelength))
 
     @cached_property
     def values(self):
-        return self.get_data(0, vstack=True)
-
-    # RA and DEC is defined with the hdulist 3 so I should redefine them 
-    @cached_property
-    def RA(self):
-        return self.get_data(3,'RA')
-
-    @cached_property
-    def DEC(self):
-        return self.get_data(3,'DEC')
-
+        return self.get_data(*self.data_dictionary['values'])
 
 class Spectra(FilesSkewerBase):
     '''Class to handle QuickQuasars output spectra files. 
@@ -513,6 +509,14 @@ class Spectra(FilesSkewerBase):
         zbest (Files object): Object with the information from the zbest files. 
 
     '''
+
+    data_dictionary = {
+        'RA'            : (1,   'TARGET_RA',    False,  False),
+        'DEC'           : (1,   'TARGET_DEC',   False,  False),
+        'id'            : (1,   'TARGETID',     False,  False),
+        'values'        : (0,   None,           True,   False)
+    }
+
     def __init__(self, arm, spectra_files, truth_files, zbest_files, lr_max=1200., redshift_to_use='best', parent_sim=None, downsampling=1):
         '''Inits the Spectra object.
 
@@ -535,38 +539,24 @@ class Spectra(FilesSkewerBase):
         self.lr_max          = lr_max
         self.redshift_to_use = redshift_to_use.lower()
 
+        self.data_dictionary['wavelength'] = ('{}_WAVELENGTH'.format(self.arm.upper()), None, False, True)
+        self.data_dictionary['flux'] = ('{}_FLUX'.format(self.arm.upper()), None, True, False)
+
     @cached_property
     def z(self):
         if self.redshift_to_use == 'best':
             return self.zbest.z
         else:
             return self.truth.z
-   
-    @cached_property
-    def id(self):
-        return self.get_data(1,'TARGETID')
 
     @cached_property
     def z_skewer(self):
         return  (self.wavelength - utils.lya_rest)/utils.lya_rest
     
     @cached_property
-    def wavelength(self):
-        with self.open_hdulists():
-            return  self.hdulists[0]['{}_WAVELENGTH'.format(self.arm.upper())].data
-
-    @cached_property
     def mask(self):
         return  utils.make_IVAR_rows( self.lr_max, self.z, np.log10(self.wavelength) )
 
     @cached_property
-    def RA(self):
-        return self.get_data(1,'TARGET_RA')
-
-    @cached_property
-    def DEC(self):
-        return self.get_data(1,'TARGET_DEC')
-
-    @cached_property
     def flux(self):
-        return self.get_data('{}_FLUX'.format(self.arm.upper()), vstack=True)
+        return self.get_data(*self.data_dictionary['flux'])
