@@ -1,5 +1,5 @@
 from LyaPlotter.file_types import *
-from LyaPlotter.sims import CoLoReSim, LyaCoLoReSim
+from LyaPlotter.sims import CoLoReSim, LyaCoLoReSim, QuickQuasarsSim
 import numpy as np
 import unittest
 import os
@@ -42,7 +42,7 @@ class TestCoLoRe(unittest.TestCase):
     def test_delta_skewers(self):
         self.assertAlmostEqual(np.mean(np.mean(self.simfiles.delta_skewers)),0.01087344)
 
-class TestLyaCoLoRe(unittest.TestCase):
+class TestLyaCoLoReTransmission(unittest.TestCase):
     test_data = os.path.dirname(os.path.realpath(__file__)) + '/data/lyacolore_output_standard'
 
     def setUp(self):
@@ -79,3 +79,104 @@ class TestLyaCoLoRe(unittest.TestCase):
     
     def test_qsos_norsd(self):
         self.assertAlmostEqual(np.mean(self.transmission.z_noRSD),2.4263303)
+
+class TestGaussianCoLoReFiles(unittest.TestCase):
+    test_data = os.path.dirname(os.path.realpath(__file__)) + '/data/lyacolore_output_standard'
+
+    def setUp(self):
+        self.sim = LyaCoLoReSim(1, self.test_data)
+        self.gaussian = self.sim.get_GaussianCoLoRe(pixels=[1])
+
+    def test_z(self):
+        self.assertAlmostEqual(np.mean(self.gaussian.z), 2.3428938)
+
+    def test_id(self):
+        self.assertAlmostEqual(np.mean(self.gaussian.id),  52144.301656151416)
+    
+    def test_wavelength(self):
+        self.assertAlmostEqual(np.mean(self.gaussian.wavelength),  2830.6567, 4)
+
+    def test_z_skewer(self):
+        self.assertAlmostEqual(np.mean(self.gaussian.z_skewer), 1.3284745)
+    
+    def test_mask(self):
+        self.assertAlmostEqual(np.mean(self.gaussian.mask), 0.46572945)
+
+    def test_delta_skewers(self):
+        self.assertAlmostEqual(np.mean(np.mean(self.gaussian.delta_skewers)), 0.001748952)
+    
+    def test_vrad(self):
+        self.assertAlmostEqual(np.mean(np.mean(self.gaussian.vrad)), 9.936127e-05)
+
+class TestPiccaStyleFiles(unittest.TestCase):
+    test_data = os.path.dirname(os.path.realpath(__file__)) + '/data/lyacolore_output_standard'
+
+    def setUp(self):
+        self.sim = LyaCoLoReSim(1, self.test_data)
+        self.piccastyle = self.sim.get_PiccaStyleFiles('picca-gaussian-colorecell', pixels=[1])
+
+    def test_z(self):
+        self.assertAlmostEqual(np.mean(self.piccastyle.z), 2.3484433)
+
+    def test_id(self):
+        self.assertAlmostEqual(np.mean(self.piccastyle.id),  52129.51813471503)
+    
+    def test_wavelength(self):
+        self.assertAlmostEqual(np.mean(self.piccastyle.wavelength),  4435.072, 3)
+
+    def test_z_skewer(self):
+        self.assertAlmostEqual(np.mean(self.piccastyle.z_skewer), 2.6482527)
+    
+    def test_mask(self):
+        self.assertAlmostEqual(np.mean(self.piccastyle.mask),  0.33045572)
+
+    def test_values(self):
+        self.assertAlmostEqual(np.mean(np.mean(self.piccastyle.values)),  0.013509239)
+    
+    def test_RA(self):
+        self.assertAlmostEqual(np.mean(self.piccastyle.RA), 47.832645, 6)
+    
+    def test_DEC(self):
+        self.assertAlmostEqual(np.mean(self.piccastyle.DEC), 4.8258276)
+
+class TestSpectra(unittest.TestCase):
+    test_data = os.path.dirname(os.path.realpath(__file__)) + '/data/quickquasars_output'
+
+    def setUp(self):
+        self.sim = QuickQuasarsSim(1, self.test_data, compression=False)
+        self.spectra = self.sim.get_spectra('R',pixels=[1])
+
+    def test_z(self):
+        self.assertAlmostEqual(np.mean(self.spectra.z), 2.6764663863182068)
+    
+    def test_id(self):
+        self.assertAlmostEqual(np.mean(self.spectra.id), 34836.9, 6)
+    
+    def test_RA(self):
+        self.assertAlmostEqual(np.mean(self.spectra.RA), 47.757553, 6)
+    
+    def test_DEC(self):
+        self.assertAlmostEqual(np.mean(self.spectra.DEC), 5.8909206)
+
+    def test_wavelength(self):
+        self.assertAlmostEqual(np.mean(self.spectra.wavelength),  5649.89990234375)
+
+    def test_z_skewer(self):
+        self.assertAlmostEqual(np.mean(self.spectra.z_skewer),  3.6475605241091325)
+    
+    def test_mask(self):
+        self.assertAlmostEqual(np.mean(self.spectra.mask),  0.0, 2)
+
+    def test_flux(self):
+        self.assertAlmostEqual(np.mean(self.spectra.flux),  0.80128753)
+    
+
+class TestSpectraTruth(unittest.TestCase):
+    test_data = os.path.dirname(os.path.realpath(__file__)) + '/data/quickquasars_output'
+
+    def setUp(self):
+        self.sim = QuickQuasarsSim(1, self.test_data, compression=False)
+        self.spectra = self.sim.get_spectra('R',pixels=[1], redshift_to_use='truth')
+    
+    def test_z(self):
+        self.assertAlmostEqual(np.mean(self.spectra.z), 2.6764665)
