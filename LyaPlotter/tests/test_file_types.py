@@ -42,6 +42,22 @@ class TestCoLoRe(unittest.TestCase):
     def test_delta_skewers(self):
         self.assertAlmostEqual(np.mean(np.mean(self.simfiles.delta_skewers)),0.01087344)
 
+    def test_downsampling_all(self):
+        self.simfiles.downsampling = 0.999999
+        self.assertNotEqual(self.simfiles.downsampling, 1)
+        self.assertAlmostEqual(np.mean(self.simfiles.DEC), -33.71186, 5)
+
+    def test_downsampling_partial(self):
+        self.simfiles.downsampling = 0.4
+        self.assertAlmostEqual(np.mean(self.simfiles.DEC), -34.545387, 6)
+        self.assertAlmostEqual(np.mean(self.simfiles.delta_skewers), 0.009134396)
+    # def test_get_multiple_data(self):
+    #     z_skewer, RA, delta_skewers = self.simfiles.get_multiple_data(['z_skewer','RA','delta_skewers'])
+
+    #     self.assertAlmostEqual(np.mean(np.mean(z_skewer)), 1.3284745)
+    #     self.assertAlmostEqual(np.mean(RA),92.35906,5)
+    #     self.assertAlmostEqual(np.mean(np.mean(delta_skewers)),0.01087344)
+
 class TestLyaCoLoReTransmission(unittest.TestCase):
     test_data = os.path.dirname(os.path.realpath(__file__)) + '/data/lyacolore_output_standard'
 
@@ -80,6 +96,9 @@ class TestLyaCoLoReTransmission(unittest.TestCase):
     def test_qsos_norsd(self):
         self.assertAlmostEqual(np.mean(self.transmission.z_noRSD),2.4263303)
 
+    def test_vrad(self):
+        self.assertAlmostEqual(np.mean(self.transmission.vrad), 0.9593648)
+
 class TestGaussianCoLoReFiles(unittest.TestCase):
     test_data = os.path.dirname(os.path.realpath(__file__)) + '/data/lyacolore_output_standard'
 
@@ -87,7 +106,7 @@ class TestGaussianCoLoReFiles(unittest.TestCase):
         self.sim = LyaCoLoReSim(1, self.test_data)
         self.gaussian = self.sim.get_GaussianCoLoRe(pixels=[1])
 
-    def test_z(self):
+    def test_z(self):   
         self.assertAlmostEqual(np.mean(self.gaussian.z), 2.3428938)
 
     def test_id(self):
