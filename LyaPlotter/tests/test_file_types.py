@@ -100,7 +100,8 @@ class TestGaussianCoLoReFiles(unittest.TestCase):
         self.assertAlmostEqual(np.mean(self.gaussian.z_skewer), 1.3284745)
     
     def test_mask(self):
-        self.assertAlmostEqual(np.mean(self.gaussian.mask), 0.46572945)
+        self.assertAlmostEqual(np.mean(self.gaussian.mask), 0.791356, 6)
+        #self.assertAlmostEqual(np.mean(self.gaussian.mask), 0.46572945)
 
     def test_delta_skewers(self):
         self.assertAlmostEqual(np.mean(np.mean(self.gaussian.delta_skewers)), 0.001748952)
