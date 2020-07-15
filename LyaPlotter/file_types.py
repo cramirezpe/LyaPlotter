@@ -290,7 +290,7 @@ class FilesSkewerBase(FilesBase):
 
         return Plotter.plot_std_all_skewers(ax,axis_values, values_array, value_name, self.mask, kwargs_hline=kwargs_hline, **kwargs)
 
-    def plot_pdf(self, values, values_name=' ',ax=None): #pragma: no cover
+    def plot_pdf(self, values, values_name=' ',ax=None, **kwargs): #pragma: no cover
         ''' Return the pdf of the values given. It makes uses of the variables self.z_skewer that must be defined'''
         if not ax: fig, ax = plt.subplots()
 
@@ -308,7 +308,7 @@ class FilesSkewerBase(FilesBase):
             else:
                 w = ((self.z_skewer>zbin[0]))
                 label = r'${}<z$'.format(zbin[0])
-            Plotter.plot_dist(ax=ax,values=np.ravel(values[:,w]),bins=d_bins,weights=np.ravel(self.mask[:,w]),density=True,label=label)
+            Plotter.plot_dist(ax=ax,values=np.ravel(values[:,w]),bins=d_bins,weights=np.ravel(self.mask[:,w]),density=True,label=label, **kwargs)
 
         ax.set_xlabel('$\\delta$')
         ax.set_ylabel('$P(\delta)$')
