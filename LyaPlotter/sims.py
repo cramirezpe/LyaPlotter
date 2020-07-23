@@ -8,6 +8,7 @@ from lyacolore import utils
 from LyaPlotter.file_types import *
 import glob
 import os
+import re
 import logging
 from pathlib import Path
 log = logging.getLogger(__name__)
@@ -157,13 +158,13 @@ class CoLoReSim():
     def __str__(self): #pragma: no cover
         return "{} sim. Id: {}\tName: {}\tPath: {}".format(self.sim_class,self.id_,self.__name__,self.sim_path)
 
-    def get_Sources(self, ifiles=[0], lr_max=1200.,source=1,downsampling=1):
+    def get_Sources(self, ifiles=None, lr_max=1200.,source=1,downsampling=1):
         ''' Get sources from a CoLoRe simulation.
 
         It will load the different information from the fits files as they are called.
 
         Args:
-            ifiles (list of int, optional): Array with the srcs files that we want to use. 
+            ifiles (list of int, optional): Array with the srcs files that we want to use (default: all the files will be selected). 
             lr_max (float, optional): Maximum wavelength for masking.
             source (int, optional): Sources to analyse from the CoLoRe output.
             downsampling (float): Downsampling to apply to the data.
@@ -171,7 +172,13 @@ class CoLoReSim():
         Returns:
             A CoLoReFiles object.
         '''
-        check_is_list(ifiles)
+        if ifiles is not None: 
+            check_is_list(ifiles)
+        else:
+            files = glob.glob(f'out_srcs_s{ source }*')
+            num = max( [int(re.search("(\d+).fits$",file).group(1)) for file in files] )
+            ifiles = range(num+1)
+
         files            = [self.sim_path + '/out_srcs_s{}_{}.fits'.format(source,ifile) for ifile in ifiles]
 
         return CoLoReFiles(files, lr_max, self, downsampling=downsampling)
