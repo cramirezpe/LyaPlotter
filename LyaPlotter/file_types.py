@@ -2,6 +2,12 @@
     Module build to structure the different file types from different origins.
 
     The objective of this module is to homogenize the way data is obtained from different types of files. 
+
+    data_dictionary is defined for each class it consists on a dictionary where it is stored the information on how to search the information inside the fits file. It is composed of four variables. 
+        - name: Name of the card to read
+        - field: Name of the field to read
+        - vstack: Whether to vstack the data or not
+        - only_one: Only grab one element (for shape issues)
 '''
 
 from lyacolore import utils
@@ -326,6 +332,8 @@ class CoLoReFiles(FilesSkewerBase):
     data_dictionary = {
         'RA'            : (1,   'RA',       False,  False),
         'DEC'           : (1,   'DEC',      False,  False),
+        'E1'            : (1,   'E1',       False,  False),
+        'E2'            : (1,   'E2',       False,  False),
         'z'             : (1,   'Z_COSMO',  False,  False),
         'delta_skewers' : (2,   None,       True,   False),
         'vrad'          : (3,   None,       True,   False),
