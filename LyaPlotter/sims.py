@@ -175,7 +175,7 @@ class CoLoReSim():
         if ifiles is not None: 
             check_is_list(ifiles)
         else:
-            files = glob.glob(f'out_srcs_s{ source }*')
+            files = glob.glob(f'{ self.sim_path }/out_srcs_s{ source }*')
             num = max( [int(re.search("(\d+).fits$",file).group(1)) for file in files] )
             ifiles = range(num+1)
 
