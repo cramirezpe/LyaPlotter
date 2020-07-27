@@ -358,6 +358,14 @@ class CoLoReFiles(FilesSkewerBase):
         return  list(range(self.N_obj))
 
     @cached_property
+    def E1(self):
+        return self.get_data(*self.data_dictionary['E1'])
+    
+    @cached_property
+    def E2(self):
+        return self.get_data(*self.data_dictionary['E2'])
+
+    @cached_property
     def wavelength(self):
         return  utils.lya_rest * (1 + self.z_skewer)
 
