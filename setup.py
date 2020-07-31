@@ -1,7 +1,10 @@
 import setuptools
+import glob
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
+
+scripts = glob.glob('bin/*')
 
 setuptools.setup(
     name="LyaPlotter_cramirezpe", # Replace with your own username
@@ -13,6 +16,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/cramirezpe/LyaPlotter/",
     packages=setuptools.find_packages(),
+    scripts = scripts,
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
