@@ -7,7 +7,7 @@ import numpy as np
 
 def pixel_get_all_neighbours(nside, pixel, depth=1, rings=False):
     ''' 
-        Function to get all neighbour pixels to a given depth. 
+        Function to get all neighbour pixels to a given depth. (Included the given one)
 
         Args: 
             nside (int): pixelization of the sky.
@@ -22,7 +22,7 @@ def pixel_get_all_neighbours(nside, pixel, depth=1, rings=False):
     neighbours.append(set([pixel]))
     all_elements.update(neighbours[0])
 
-    for i in range(depth+1):
+    for i in range(depth):
         neighbours.append(set())
         for pix in neighbours[i]:
             new_elements = set(hp.pixelfunc.get_all_neighbours(nside,pix))
