@@ -322,6 +322,38 @@ class FilesSkewerBase(FilesBase):
         return
 
 
+class LyaCoLoReMasterFile(FilesBase):
+    ''' Class to handle LyaCoLoRe master files.
+    '''
+    data_dictionary = {
+    'RA'            : (1,   'RA',       False,  False),
+    'DEC'           : (1,   'DEC',      False,  False),
+    'z_noRSD'       : (1,   'Z_QSO_NO_RSD', False,  False),
+    'z'             : (1,   'Z_QSO_RSD',False,  False),
+    'id'            : (1,   'MOCKID',   False,  False),
+    'pixnum'        : (1,   'PIXNUM',   False,  False),
+    'filenum'       : (1,   'FILENUM',  False,  False)
+    }
+
+    def __init__(self, file_paths):
+        FilesBase.__init__(self, file_paths=file_paths)
+
+    @cached_property
+    def id(self):
+        return self.get_data((*self.data_dictionary['id']))
+    
+    @cached_property
+    def z_noRSD(self):
+        return self.get_data((*self.data_dictionary['z_noRSD']))
+
+    @cached_property
+    def pixnum(self):
+        return self.get_data((*self.data_dictionary['pixnum']))
+
+    @cached_property
+    def filenum(self):
+        return self.get_data((*self.data_dictionary['filenum']))
+
 class CoLoReFiles(FilesSkewerBase):
     '''Class to handle CoLoRe output files. 
 
