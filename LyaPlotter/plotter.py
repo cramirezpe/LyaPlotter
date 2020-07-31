@@ -5,6 +5,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from LyaPlotter.computations import Computations
+import healpy as hp
 
 class Plotter: #pragma: no cover
     @staticmethod
@@ -78,3 +79,26 @@ class Plotter: #pragma: no cover
         ax.plot(axis_values, values, **kwargs)
         ax.axhline(y=overall_sigma, **kwargs_hline)
         return axis_values, values
+
+    def plot_mollview_positions(RA, DEC, nside=64, ax=None, **kwargs):
+        '''
+            Plot mollview of objects positions
+
+            Args:
+                RA: (in degrees)
+                DEC: (in degrees)
+                nside:
+                ax: Set to None to create new axis.
+                kwargs: kwargs to be sent to mollview
+        '''
+        if ax is not None:
+            plt.axes(ax)
+            hold = True
+        else:
+            hold = False
+        
+        npix = hp.nside2npix(nside)
+        pix = hp.ang2pix(nside, np.radians(90-DEC), np.radians(RA))
+        n = np.bincount(pix, minlength=npix)
+        
+        hp.mollview(n, hold = hold)
