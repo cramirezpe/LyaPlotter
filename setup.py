@@ -1,13 +1,11 @@
 import setuptools
-import glob
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
-scripts = glob.glob('bin/*')
 
 setuptools.setup(
-    name="LyaPlotter_cramirezpe", # Replace with your own username
+    name="LyaPlotter", # Replace with your own username
     version="0.0.1",
     author="César Ramírez",
     author_email="cramirez@ifae.es",
@@ -16,7 +14,11 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/cramirezpe/LyaPlotter/",
     packages=setuptools.find_packages(),
-    scripts = scripts,
+    entry_points={
+        'console_scripts': [
+            'LyaPlotter_get_pixel_neighbours = LyaPlotter.scripts.get_pixel_neighbours:main'
+        ]
+    },
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
