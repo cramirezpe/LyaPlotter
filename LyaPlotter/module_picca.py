@@ -145,7 +145,23 @@ class cfPlotter(PlotterBase):
         ax.set_xlabel(r"$r \, [\mathrm{Mpc \, h^{-1}}]$")
         ax.set_ylabel(r"$r^{0} \xi(r) \, [\mathrm{{Mpc \, h^{{-1}}  }}]$".format(rfactor))
         if title: ax.set_title('{0} < $\mu$ < {1}'.format(mumin, mumax))
-        return
+        return self.data_wedge
+
+class coPlotter(cfPlotter):
+    '''
+    Class to store the usual plots from e_co.fits.gz output. It should be initialized through:
+        object = coPlotter(path, name)
+
+        If the name is not provided it would default to the folder's name.
+
+        After that, the following plot methods are available (kwargs sent to the main plot):
+            plot(self, rfactor=0, mumin=0, mumax=0.5, ax=None, title=False, **kwargs)
+    '''
+
+    @classmethod
+    def search(cls,path):
+        ''' Classmethod to search outputs under the given path. They are returned sorted by date'''
+        return PlotterBase.search(path,'e_co.fits.gz')
 
 class cf1dPlotter(PlotterBase):
     ''' 
