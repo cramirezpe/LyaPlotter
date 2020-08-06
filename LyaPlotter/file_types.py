@@ -12,6 +12,7 @@
 
 from lyacolore import utils
 import matplotlib.pyplot as plt
+import healpy as hp
 import logging
 from astropy.io import fits
 import numpy as np
@@ -167,17 +168,25 @@ class FilesBase:
         Plotter.plot_locations(ax,self.RA,self.DEC,**kwargs)
         return
 
-    def plot_footprint(self,bins=100, ax=None, **kwargs): #pragma: no cover
+    def plot_footprint(self, nside=64, ax=None, **kwargs): #pragma: no cover
         '''Plot the locations of the QSO in a heatmap, they should be incorporated in self.RA and self.DEC
         
         Args:
-            bins (int, obptional): Number of bins to the footprint.
+            nside (int, obptional): Pixelization of the plot.
             **kwargs (optional): Additional arguments to the plot.
         '''
-        if not ax: fig, ax = plt.subplots()
-        Plotter.plot_footprint(self.RA,self.DEC,bins,ax=ax,**kwargs)
-        ax.set_xlabel(r'RA')
-        ax.set_ylabel(r'DEC')
+        if not ax: 
+            log.info('Axis not provided')
+            fig, ax = plt.subplots()
+        else:
+            log.info('Axis provided')
+        npix = hp.nside2npix(nside)
+        pix  = hp.ang2pix(nside, self.RA, self.DEC,     lonlat=True)
+        n = np.bincount(pix, minlength=npix)
+
+        plt.axes(ax)
+        hp.mollview(n, hold=True, unit='# objects')
+        if not ax: plt.show()
         return
 
     def plot_dist(self, ax=None, bins=None, **kwargs): #pragma: no cover
