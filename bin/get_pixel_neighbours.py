@@ -6,7 +6,7 @@
 from LyaPlotter.pixel_tools import pixel_get_all_neighbours
 import argparse
 
-if __name__ == '__main__': #pragma: no cover
+def main(): #pragma: no cover
     parser = argparse.ArgumentParser(description='Obtain neighbour pixels for a given pixel.')
     parser.add_argument('-n','--nside', required=True, type=int, help="nside for the pixelization of the sky")
     parser.add_argument('-p','--pixel', required=True, type=int, help='pixel from which to obtian neighbours (pixel number')
@@ -16,4 +16,7 @@ if __name__ == '__main__': #pragma: no cover
     args = parser.parse_args()
 
     print(pixel_get_all_neighbours(args.nside, args.pixel, depth=args.depth, rings=args.rings))
+    return
 
+if __name__ == '__main__':
+    main()
