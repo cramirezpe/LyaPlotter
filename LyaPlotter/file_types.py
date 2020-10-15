@@ -185,7 +185,7 @@ class FilesBase:
         n = np.bincount(pix, minlength=npix)
 
         plt.axes(ax)
-        hp.mollview(n, hold=True, unit='# objects')
+        hp.mollview(n, hold=True, unit='# objects', **kwargs)
         if not ax: plt.show()
         return
 
