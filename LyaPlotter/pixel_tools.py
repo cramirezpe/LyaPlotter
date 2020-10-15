@@ -15,6 +15,9 @@ def pixel_get_all_neighbours(nside, pixel, depth=1, rings=False, nest=True):
             depth (int,optional): max depth to get neighbours (e.g: depth=2 will obtain neighbours of neighbours). (default: 1)
             rings (bool, optional): whether to output neighbours distributed in rings (default: False)
             nest (bool, optional): if True, assume NESTED pixel ordering (the one used in LyaCoLoRe by default), otherwise, RING pixel ordering.
+
+        Returns:
+            set of neighbour pixels.
     '''
 
     all_elements = set([pixel])
