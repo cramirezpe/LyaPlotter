@@ -5,6 +5,7 @@
 import fitsio
 import scipy as sp
 import healpy
+import os
 
 def master_to_qso_cat(in_file, out_file, min_zcat=1.7, nside=16, downsampling=1, downsampling_seed=0, randoms_input=False):
     ''' 
@@ -65,3 +66,28 @@ def master_to_qso_cat(in_file, out_file, min_zcat=1.7, nside=16, downsampling=1,
 
     return
 
+def from_string_to_options(input):
+    '''
+        Function to convert file or string with argparse options into a dict of these options.
+
+        Args: 
+            input (str): Input file or string which contains the argparse options (e.g: --option1 param_a --option2 param_b --store_true_option)
+
+        Returns:
+            (dict): Dictionary containing the different options. 
+    '''
+
+    if os.path.isfile(input):
+        with open(input, 'r') as file:
+            string = file.read().strip()
+    else:
+        string = input.strip()
+
+    options = dict()
+    for x in string.split('--')[1:]:
+        x = x.strip().split(' ',1)
+        try:
+            options[x[0]] = x[1]
+        except IndexError:
+            options[x[0]] = ""
+    return options
