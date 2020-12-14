@@ -261,7 +261,12 @@ class FilesSkewerBase(FilesBase):
         if not mockid:              ind = 0
         else:                       ind = list(self.id).index(mockid)
         
-        values = values_array[ind,:]
+        if np.shape(values_array).index(len(self.id)) == 0:
+            values = values_array[ind,:]
+        elif np.shape(values_array).index(len(self.id)) == 1:
+            values = values_array[:, ind]
+        else:
+            raise ValueError('values array shape mismatch')
 
         return Plotter.plot_skewer(ax, axis_values=axis_values, values=values, value_name=value_name ,weights=self.mask[ind],**kwargs) 
          
@@ -330,6 +335,48 @@ class FilesSkewerBase(FilesBase):
         ax.legend()
         return
 
+class DeltasFile():
+    '''Class to handle Deltas files.
+
+    Attributes:
+
+    '''
+
+    def __init__(self, file_paths, downsampling=1):
+        ''' 
+
+        Args:
+            file_paths (list of str): List of paths to the different output files.
+            downsampling (float): Downsampling to apply to the data. 
+        '''
+        if isinstance(file_paths, str): #pragma:no cover
+            file_paths = [file_paths]
+
+        self.downsampling = downsampling
+        self.file_paths   = file_paths
+        self.N_files      = len(file_paths)
+
+    @contextmanager
+    def open_hdulists(self):
+        '''Context manager to open fits files and close it afterwards
+
+        Args:
+            file_paths (list of str): Paths to the different fits files.
+            
+        Returns:
+            List of all the (opened) fits files to handle them.
+        '''
+        try:
+            self.hdulists = [fits.open(path) for path in self.file_paths]
+            yield self.hdulists
+        except: #pragma: no cover
+            print('Reading fits files failed:',self.file_paths)
+            raise
+        finally:
+            [x.close() for x in self.hdulists]
+
+    def get_data(self, elements):
+        pass
 
 class LyaCoLoReMasterFile(FilesBase):
     ''' Class to handle LyaCoLoRe master files.
@@ -344,8 +391,8 @@ class LyaCoLoReMasterFile(FilesBase):
     'filenum'       : (1,   'FILENUM',  False,  False)
     }
 
-    def __init__(self, file_paths):
-        FilesBase.__init__(self, file_paths=file_paths)
+    # def __init__(self, file_paths):
+    #     FilesBase.__init__(self, file_paths=file_paths)
 
     @cached_property
     def id(self):
@@ -567,13 +614,6 @@ class Spectra(FilesSkewerBase):
 
     '''
 
-    data_dictionary = {
-        'RA'            : (1,   'TARGET_RA',    False,  False),
-        'DEC'           : (1,   'TARGET_DEC',   False,  False),
-        'id'            : (1,   'TARGETID',     False,  False),
-        'values'        : (0,   None,           True,   False)
-    }
-
     def __init__(self, arm, spectra_files, truth_files, zbest_files, lr_max=1200., redshift_to_use='best', parent_sim=None, downsampling=1):
         '''Inits the Spectra object.
 
@@ -586,6 +626,7 @@ class Spectra(FilesSkewerBase):
             redhisft_to_use (str,optional): We need a redshift for the Quasar to compute quantities (truth or best).
 
         '''
+        
         FilesBase.__init__(self,spectra_files, parent_sim, downsampling)
         self.truth      = TruthFiles(truth_files,  parent_sim)
         self.zbest      = BestFiles(zbest_files,   parent_sim)
@@ -596,6 +637,12 @@ class Spectra(FilesSkewerBase):
         self.lr_max          = lr_max
         self.redshift_to_use = redshift_to_use.lower()
 
+        self.data_dictionary = {
+            'RA'            : (1,   'TARGET_RA',    False,  False),
+            'DEC'           : (1,   'TARGET_DEC',   False,  False),
+            'id'            : (1,   'TARGETID',     False,  False),
+            'values'        : (0,   None,           True,   False)
+        }
         self.data_dictionary['wavelength'] = ('{}_WAVELENGTH'.format(self.arm.upper()), None, False, True)
         self.data_dictionary['flux'] = ('{}_FLUX'.format(self.arm.upper()), None, True, False)
 
