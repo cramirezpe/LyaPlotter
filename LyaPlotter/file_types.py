@@ -13,6 +13,7 @@
 from lyacolore import utils
 import matplotlib.pyplot as plt
 import healpy as hp
+from pathlib import Path
 import logging
 from astropy.io import fits
 import numpy as np
@@ -22,26 +23,26 @@ from contextlib import contextmanager
 
 
 log = logging.getLogger(__name__)
+from functools import cached_property
+# class cached_property(object):
+#     """
+#     Descriptor (non-data) for building an attribute on-demand on first use.
+#     """
+#     def __init__(self, factory):
+#         """
+#         <factory> is called such: factory(instance) to build the attribute.
+#         """
+#         self._attr_name = factory.__name__
+#         self._factory = factory
 
-class cached_property(object):
-    """
-    Descriptor (non-data) for building an attribute on-demand on first use.
-    """
-    def __init__(self, factory):
-        """
-        <factory> is called such: factory(instance) to build the attribute.
-        """
-        self._attr_name = factory.__name__
-        self._factory = factory
+#     def __get__(self, instance, owner):
+#         # Build the attribute.
+#         attr = self._factory(instance)
 
-    def __get__(self, instance, owner):
-        # Build the attribute.
-        attr = self._factory(instance)
+#         # Cache the value; hide ourselves.
+#         setattr(instance, self._attr_name, attr)
 
-        # Cache the value; hide ourselves.
-        setattr(instance, self._attr_name, attr)
-
-        return attr
+#         return attr
 
 class FilesBase:
     '''Base class to handle output files
@@ -55,7 +56,7 @@ class FilesBase:
         RA (list of float): RA from files.
         DEC (list of float): DEC from files.
     '''
-
+    nside = 16
     data_dictionary = {
         'RA'    : (1,   'RA',   False,  False),
         'DEC'   : (1,   'DEC',  False,  False),
@@ -72,7 +73,7 @@ class FilesBase:
             downsampling (float): Downsampling to apply to the data.
 
         '''
-        if isinstance(file_paths, str): #pragma: no cover
+        if isinstance(file_paths, str) or isinstance(file_paths, Path): #pragma: no cover
             file_paths = [file_paths]
 
         self.sim        = parent_sim
@@ -146,6 +147,28 @@ class FilesBase:
             A list of DEC values (floats)
         '''
         return self.get_data((*self.data_dictionary['DEC']))
+
+    @cached_property
+    def healpixels(self):
+        '''Cached property obtaining healpix positions.
+
+        NEST ordering is used, as it is the one used by LyaCoLoRe (but is not the default in healpy).
+
+        The default nside used for this is self.nside=16. If you want to recompute healpixels you should run:
+
+                del(self.healpixels)
+                self.nside = new_nside
+                self.healpixels
+        '''
+        return hp.pixelfunc.ang2pix(self.nside, self.RA, self.DEC, lonlat=True, nest=True)
+
+    def obj_count_pixel(self, mask=None):
+        '''Compute the number of objects for each healpix pixel.
+        '''
+        if mask is None:
+            return np.bincount( self.healpixels )
+        else:
+            return np.bincount( self.healpixels[mask] )
 
     @cached_property
     def z(self):
@@ -349,7 +372,7 @@ class DeltasFile():
             file_paths (list of str): List of paths to the different output files.
             downsampling (float): Downsampling to apply to the data. 
         '''
-        if isinstance(file_paths, str): #pragma:no cover
+        if isinstance(file_paths, str) or isinstance(file_paths, Path): #pragma:no cover
             file_paths = [file_paths]
 
         self.downsampling = downsampling
