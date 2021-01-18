@@ -448,6 +448,7 @@ class CoLoReFiles(FilesSkewerBase):
         'z'             : (1,   'Z_COSMO',  False,  False),
         'delta_skewers' : (2,   None,       True,   False),
         'vrad'          : (3,   None,       True,   False),
+        'D_skewer'      : (4,   'D',        False,  False),
         'z_skewer'      : (4,   'Z',        False,  True)
     }
 
@@ -459,6 +460,17 @@ class CoLoReFiles(FilesSkewerBase):
         '''
         FilesSkewerBase.__init__(self,file_paths,parent_sim, downsampling)        
         self.lr_max             = lr_max
+
+    @cached_property
+    def sigma_g(self):
+        with self.open_hdulists():
+            return self.hdulists[0][4].header['SIGMA_G']
+
+    @cached_property
+    def D_skewer(self):
+        ''' Returns the growth factor at each position on the skewer
+        '''
+        return self.get_data(*self.data_dictionary['D_skewer'])
 
     @cached_property
     def id(self): #pragma: no cover
