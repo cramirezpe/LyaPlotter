@@ -16,7 +16,8 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     entry_points={
         'console_scripts': [
-            'LyaPlotter_get_pixel_neighbours = LyaPlotter.scripts.get_pixel_neighbours:main'
+            'LyaPlotter_get_pixel_neighbours = LyaPlotter.scripts.get_pixel_neighbours:main',
+            'LyaPlotter_master_to_qso_cat = LyaPlotter.tools:master_to_qso_cat_script'
         ]
     },
     classifiers=[
