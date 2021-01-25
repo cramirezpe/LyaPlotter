@@ -448,7 +448,7 @@ class CoLoReFiles(FilesSkewerBase):
         'z'             : (1,   'Z_COSMO',  False,  False),
         'delta_skewers' : (2,   None,       True,   False),
         'vrad'          : (3,   None,       True,   False),
-        'D_skewer'      : (4,   'D',        False,  False),
+        'D_skewer'      : (4,   'D',        False,  True),
         'z_skewer'      : (4,   'Z',        False,  True)
     }
 
