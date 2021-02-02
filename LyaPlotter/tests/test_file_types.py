@@ -3,6 +3,7 @@ from LyaPlotter.sims import CoLoReSim, LyaCoLoReSim, QuickQuasarsSim
 import numpy as np
 import unittest
 import os
+from pathlib import Path
 
 class TestCoLoRe(unittest.TestCase):
     test_data = os.path.dirname(os.path.realpath(__file__)) + '/data/colore_output'
@@ -19,7 +20,7 @@ class TestCoLoRe(unittest.TestCase):
         self.assertEqual(self.simfiles.N_obj,1000)
 
     def test_file_path(self):
-        self.assertEqual(self.simfiles.file_paths[0],self.test_data+'/out_srcs_s1_0.fits')
+        self.assertEqual(self.simfiles.file_paths[0], Path(self.test_data+'/out_srcs_s1_0.fits'))
 
     def test_RA(self):
         self.assertAlmostEqual(np.mean(self.simfiles.RA),92.35906,5)

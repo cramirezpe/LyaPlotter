@@ -446,6 +446,7 @@ class CoLoReFiles(FilesSkewerBase):
         'E1'            : (1,   'E1',       False,  False),
         'E2'            : (1,   'E2',       False,  False),
         'z'             : (1,   'Z_COSMO',  False,  False),
+        'dz_rsd'       : (1,       'DZ_RSD',  False,  False),
         'delta_skewers' : (2,   None,       True,   False),
         'vrad'          : (3,   None,       True,   False),
         'D_skewer'      : (4,   'D',        False,  True),
@@ -465,6 +466,10 @@ class CoLoReFiles(FilesSkewerBase):
     def sigma_g(self):
         with self.open_hdulists():
             return self.hdulists[0][4].header['SIGMA_G']
+
+    @cached_property
+    def dz_rsd(self):
+        return self.get_data((*self.data_dictionary['dz_rsd']))
 
     @cached_property
     def D_skewer(self):
@@ -578,6 +583,7 @@ class GaussianCoLoReFiles(CoLoReFiles):
         'RA'            : (1,   'RA',       False,  False),
         'DEC'           : (1,   'DEC',      False,  False),
         'z'             : (1,   'Z_COSMO',  False,  False),
+        'dz_rsd'       : (1,       'DZ_RSD',  False,  False),
         'id'            : (1,   'MOCKID',   False,  False),
         'delta_skewers' : (2,   None,       True,   False),
         'vrad'          : (3,   None,       True,   False),

@@ -125,15 +125,16 @@ class CoLoReSim():
             
         '''
         self.id_ = id_
+
+        self.sim_path = Path(sim_path)
         
         if name: #pragma: no cover
             self.__name__ = name
         else:
-            self.__name__ = sim_path[sim_path.rfind('/')+1:]
+            self.__name__ = self.sim_path.name
 
-        self.sim_path = sim_path
         try:
-            self.param_file = sorted(glob.glob(self.sim_path + '/*.cfg'), key=os.sim_path.getmtime)[0]
+            self.param_file = sorted( self.sim_path.glob('*cfg'), key=lambda x: x.stat().st_mtime )
         except:
             self.param_file = None
         self.file_type = file_type    
@@ -175,11 +176,11 @@ class CoLoReSim():
         if ifiles is not None: 
             check_is_list(ifiles)
         else:
-            files = glob.glob(f'{ self.sim_path }/out_srcs_s{ source }*')
+            files = self.sim_path.glob(f'out_srcs_s{ source }*')
             num = max( [int(re.search("(\d+).fits$",file).group(1)) for file in files] )
             ifiles = range(num+1)
 
-        files            = [self.sim_path + '/out_srcs_s{}_{}.fits'.format(source,ifile) for ifile in ifiles]
+        files            = [self.sim_path / 'out_srcs_s{}_{}.fits'.format(source,ifile) for ifile in ifiles]
 
         return CoLoReFiles(files, lr_max, self, downsampling=downsampling)
         # self.CoLoReFiles = CoLoReFiles(files,lr_max,self.file_type)
