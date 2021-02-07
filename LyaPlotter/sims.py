@@ -177,7 +177,7 @@ class CoLoReSim():
             check_is_list(ifiles)
         else:
             files = self.sim_path.glob(f'out_srcs_s{ source }*')
-            num = max( [int(re.search("(\d+).fits$",file).group(1)) for file in files] )
+            num = max( [int(re.search("(\d+).fits$",file.name).group(1)) for file in files] )
             ifiles = range(num+1)
 
         files            = [self.sim_path / 'out_srcs_s{}_{}.fits'.format(source,ifile) for ifile in ifiles]
