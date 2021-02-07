@@ -6,22 +6,78 @@ import argparse
 import fitsio
 import scipy as sp
 import healpy
+import numpy as np
 import os
+from pathlib import Path
+import logging
+logger = logging.getLogger(__name__)
 
-def master_to_qso_cat_script():
-    parser = argparse.ArgumentParser(description='Convert master.fits file from LyaCoLoRe sim into zcat.fits file that can be read by picca')
+def write_picca_drq_cat(Z, RA, DEC, out_file):
 
-    parser.add_argument('--master', required=True, help='Path to master.fits file from LyaCoLoRe sim')
-    parser.add_argument('--out-file', required=True, help='Path to output zcat file')
-    parser.add_argument('--z-min', default=1.7, type=float)
-    parser.add_argument('--nside', default=16, type=int, help='nside used in the LyaCoLoRe box')
-    parser.add_argument('--downsampling', type=float, default=1)
-    parser.add_argument('--downsampling-seed', type=int, default=0)
-    parser.add_argument('--randoms-input', action='store_true', help='Set this option if the input catalog is a randoms (Will select "Z" as redshift instead of "Z_QSO_RSD"')
+    from astropy.io import fits
+    logger.info('Generating picca-like catalog from input data')
+    logger.info('Mocking THING-ID field')
+    THING_ID = np.arange(1, len(RA)+1)
+    PLATE = THING_ID
+    MJD = THING_ID
+    FIBERID = THING_ID
 
-    args = parser.parse_args()
+    logger.info('Defining data types')
+    dtype = [('RA','f4'),('DEC','f4'),('Z','f4'),('THING_ID',int),('MJD','f4'),('FIBERID',int),('PLATE',int)]
+    logger.info('Defining data arrays')
+    DRQ_data = np.array(list(zip(RA,DEC,Z,THING_ID,MJD,FIBERID,PLATE)), dtype=dtype)
 
-    master_to_qso_cat(args.master, args.out_file, args.z_min, args.nside, args.downsampling, args.downsampling_seed, args.randoms_input)
+    # Appropiate header
+    logger.info('Defining FITS header')
+    header = fits.Header()
+    header['NSIDE'] = 16
+
+    # Create a new master file, with the same filename concatenated with '__picca__' and the RSD option chosen.
+    logger.info('Defining HDUs')
+    prihdr  = fits.Header()
+    prihdu  = fits.PrimaryHDU(header=prihdr)
+    hdu_DRQ = fits.BinTableHDU(DRQ_data, header=header)
+
+    hdulist = fits.HDUList([prihdu, hdu_DRQ])
+    logger.info('Writting data.')
+    hdulist.writeto(out_file, overwrite=True) 
+    hdulist.close()
+
+def colore_to_drq_cat(in_sim, out_file, ifiles=None, source=1, downsampling=1, rsd=False, valid_pixels=None):
+    ''' Method to extract a picca-like catalog from a CoLoRe box
+
+        Args:
+            in_path (str): Path to the CoLoRe box
+            out_file (str): Path where to save the catalogue
+            source (int, optional): Sources to analyse from the CoLoRe output.
+            downsampling (float, optional): Downsampling to use when copying objects from one catalog to the other. (default: 1)
+            rsd (bool): Apply rsd
+    '''
+    from LyaPlotter.sims import CoLoReSim
+    from astropy.io import fits
+
+    in_sim = Path(in_sim)
+    sim = CoLoReSim(0, in_sim)
+    data = sim.get_Sources(ifiles=ifiles, source=source, downsampling=downsampling)
+
+    if rsd:
+        Z = data.z + data.dz_rsd
+    else:
+        Z = data.z
+    RA = data.RA
+    DEC = data.DEC
+
+    if valid_pixels is not None:
+        print('valid_pixels', valid_pixels)
+        mask = np.in1d(data.healpixels, np.asarray(valid_pixels))
+        print('objects in valid pixels:', mask.sum())
+        Z = Z[mask]
+        RA = data.RA[mask]
+        DEC = data.DEC[mask]
+
+    print(f'Length of resulting catalog: \t{len(Z)}')
+    write_picca_drq_cat(Z, RA, DEC, out_file)
+
 
 def master_to_qso_cat(in_file, out_file, min_zcat=1.7, nside=16, downsampling=1, downsampling_seed=0, randoms_input=False):
     ''' 
