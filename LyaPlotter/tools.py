@@ -12,36 +12,37 @@ from pathlib import Path
 import logging
 logger = logging.getLogger(__name__)
 
-def write_picca_drq_cat(Z, RA, DEC, out_file):
+def write_picca_drq_cat(Z, RA, DEC, out_file, THING_ID=None):
 
     from astropy.io import fits
     logger.info('Generating picca-like catalog from input data')
-    logger.info('Mocking THING-ID field')
-    THING_ID = np.arange(1, len(RA)+1)
+    logger.debug(f'Length of Z:\t{len(Z)}\nLength of RA:\t{len(RA)}\nLength of DEC:\t{len(DEC)}')
+    logger.debug(f'Negative RA?\t{(RA<0).sum()}')
+    THING_ID = np.arange(1, len(RA)+1) if THING_ID is None else THING_ID
     PLATE = THING_ID
     MJD = THING_ID
     FIBERID = THING_ID
 
-    logger.info('Defining data types')
-    dtype = [('RA','f4'),('DEC','f4'),('Z','f4'),('THING_ID',int),('MJD','f4'),('FIBERID',int),('PLATE',int)]
-    logger.info('Defining data arrays')
-    DRQ_data = np.array(list(zip(RA,DEC,Z,THING_ID,MJD,FIBERID,PLATE)), dtype=dtype)
+    logger.info('Building fits columns')
+    cols = []
+    for value, label, dtype in zip((RA, DEC, Z, THING_ID, PLATE, MJD, FIBERID), ('RA', 'DEC', 'Z', 'THING_ID', 'MJD', 'FIBERID', 'PLATE'), ('D', 'D', 'D', 'K', 'K', 'K', 'K')):
+        cols.append(fits.Column(name=label, format=dtype, array=value))
 
-    # Appropiate header
-    logger.info('Defining FITS header')
-    header = fits.Header()
-    header['NSIDE'] = 16
+    logger.debug('Defining FITS headers')
+    p_hdr = fits.Header()
+    t_hdr = fits.Header()
 
-    # Create a new master file, with the same filename concatenated with '__picca__' and the RSD option chosen.
-    logger.info('Defining HDUs')
-    prihdr  = fits.Header()
-    prihdu  = fits.PrimaryHDU(header=prihdr)
-    hdu_DRQ = fits.BinTableHDU(DRQ_data, header=header)
+    t_hdr['NSIDE'] = 16
 
-    hdulist = fits.HDUList([prihdu, hdu_DRQ])
-    logger.info('Writting data.')
-    hdulist.writeto(out_file, overwrite=True) 
-    hdulist.close()
+    logger.debug('Defining hdulist')
+    hdulist = fits.HDUList()
+
+    hdulist.append(fits.PrimaryHDU(header=p_hdr))
+    hdulist.append(fits.BinTableHDU.from_columns(cols, header=t_hdr))
+
+    logger.info('Writting data to file')
+    hdulist.writeto(out_file, overwrite=True)
+    hdulist.close() 
 
 def colore_to_drq_cat(in_sim, out_file, ifiles=None, source=1, downsampling=1, rsd=False, valid_pixels=None):
     ''' Method to extract a picca-like catalog from a CoLoRe box
