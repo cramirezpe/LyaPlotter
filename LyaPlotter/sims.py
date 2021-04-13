@@ -9,6 +9,7 @@ from LyaPlotter.file_types import *
 import glob
 import os
 import re
+import libconf
 import logging
 from pathlib import Path
 log = logging.getLogger(__name__)
@@ -134,7 +135,9 @@ class CoLoReSim():
             self.__name__ = self.sim_path.name
 
         try:
-            self.param_file = sorted( self.sim_path.glob('*cfg'), key=lambda x: x.stat().st_mtime )
+            self.param_file = next( self.sim_path.glob('*cfg') )
+            with open(self.param_file) as f:
+                self.param_cfg = libconf.load(f)
         except:
             self.param_file = None
         self.file_type = file_type    
