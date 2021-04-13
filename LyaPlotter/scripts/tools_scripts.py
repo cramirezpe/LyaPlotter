@@ -1,6 +1,8 @@
 import argparse
 from pathlib import Path
 from LyaPlotter.tools import master_to_qso_cat, colore_to_drq_cat
+import logging
+import sys
 
 def master_to_qso_cat_script(): #pragma: no cover
     parser = argparse.ArgumentParser(description='Convert master.fits file from LyaCoLoRe sim into zcat.fits file that can be read by picca')
@@ -11,11 +13,15 @@ def master_to_qso_cat_script(): #pragma: no cover
     parser.add_argument('--nside', default=16, type=int, help='nside used in the LyaCoLoRe box')
     parser.add_argument('--downsampling', type=float, default=1)
     parser.add_argument('--downsampling-seed', type=int, default=0)
+    parser.add_argument('--rsd', action='store_true', help='Include RSD distortions in resulting catalog.')
     parser.add_argument('--randoms-input', action='store_true', help='Set this option if the input catalog is a randoms (Will select "Z" as redshift instead of "Z_QSO_RSD"')
+    parser.add_argument('--log-level', default='WARNING', choices=['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET'])
 
     args = parser.parse_args()
+    level = logging.getLevelName(args.log_level)
+    logging.basicConfig(stream=sys.stdout, level=level)
 
-    master_to_qso_cat(args.master, args.out_file, args.z_min, args.nside, args.downsampling, args.downsampling_seed, args.randoms_input)
+    master_to_qso_cat(in_file=args.master, out_file=args.out_file, min_zcat=args.z_min, nside=args.nside, downsampling=args.downsampling, downsampling_seed=args.downsampling_seed, randoms_input=args.randoms_input, rsd=args.rsd)
 
 def colore_to_drq_script(): #pragma: no cover
     parser = argparse.ArgumentParser(description='Method to extract a picca-like catalog from a CoLoRe box')
@@ -27,7 +33,10 @@ def colore_to_drq_script(): #pragma: no cover
     parser.add_argument('--valid_pixels', default=None, nargs='+', type=int, help='Downsample in pixels')
     parser.add_argument('--downsampling', default=1, type=float, help='Downsampling to use when extracting objects from the output')
     parser.add_argument('--rsd', action='store_true', help='Apply rsd to the objects')
+    parser.add_argument('--log-level', default='WARNING', choices=['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET'])
 
     args = parser.parse_args()
+    level = logging.getLevelName(args.log_level)
+    logging.basicConfig(stream=sys.stdout, level=level)
 
     colore_to_drq_cat(args.in_sim, args.out_file, ifiles=args.ifiles, source=args.source, downsampling=args.downsampling, rsd=args.rsd, valid_pixels=args.valid_pixels)
