@@ -79,7 +79,7 @@ def colore_to_drq_cat(in_sim, out_file, ifiles=None, source=1, downsampling=1, r
     write_picca_drq_cat(Z, RA, DEC, out_file)
 
 
-def master_to_qso_cat(in_file, out_file, min_zcat=1.7, nside=16, downsampling=1, downsampling_seed=0, randoms_input=False):
+def master_to_qso_cat(in_file, out_file, min_zcat=1.7, nside=16, downsampling=1, downsampling_seed=0, randoms_input=False, rsd=True):
     ''' 
         Method to convert master.fits files from LyaCoLoRe sims into qso catalogs zcat.fits.
 
@@ -95,7 +95,12 @@ def master_to_qso_cat(in_file, out_file, min_zcat=1.7, nside=16, downsampling=1,
         Returns:
             None
     '''
-    z = 'Z' if randoms_input else 'Z_QSO_RSD'
+    if randoms_input:
+        z = 'Z'
+    elif rsd:
+        z = 'Z_QSO_RSD'
+    else:
+        z = 'Z_QSO_NO_RSD'
 
     ### Make random generator
     state = sp.random.RandomState(downsampling_seed)
