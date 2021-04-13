@@ -17,7 +17,9 @@ setuptools.setup(
     entry_points={
         'console_scripts': [
             'LyaPlotter_get_pixel_neighbours = LyaPlotter.scripts.get_pixel_neighbours:main',
-            'LyaPlotter_master_to_qso_cat = LyaPlotter.tools:master_to_qso_cat_script'
+            'LyaPlotter_master_to_qso_cat = LyaPlotter.scripts.tools_scripts:master_to_qso_cat_script',
+            'LyaPlotter_test_debug = LyaPlotter.tools:test_debug_mode',
+            'LyaPlotter_colore_to_drq = LyaPlotter.scripts.tools_scripts:colore_to_drq_script'
         ]
     },
     classifiers=[
@@ -25,5 +27,5 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    python_requires='>=3.7',
+    python_requires='>=3.6',
 )   
