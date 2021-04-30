@@ -79,6 +79,36 @@ def colore_to_drq_cat(in_sim, out_file, ifiles=None, source=1, downsampling=1, r
     print(f'Length of resulting catalog: \t{len(Z)}')
     write_picca_drq_cat(Z, RA, DEC, out_file)
 
+def trim_catalog_into_pixels(in_cat, out_path, nside):
+    ''' Method to trim a catalog into multiple catalogs (one for each healpix pixel)
+
+    Args:
+        in_cat (str or Path): Input catalog
+        out_path (str or Path): Output path for subcatalogs
+        nside (int): pixelization that will determine the number of subcatalogs (npix = 12*nside**2)
+    '''
+
+    Path(out_path).mkdir(parents=True, exist_ok=False)
+
+    logger.info('Reading input catalog')
+    h = fitsio.FITS(in_cat)
+
+    logger.info(f'Length of cat: {h[1].get_nrows()}')
+    
+    Z = h[1]['Z'][:]
+    RA = h[1]['RA'][:]
+    DEC = h[1]['DEC'][:]
+    THING_ID = h[1]['THING_ID'][:]
+
+    pixels = healpy.ang2pix(nside, RA, DEC, lonlat=True)
+
+    for i in range(12*nside**2):
+        logger.info(f'Computing catalog for pixel {i}')
+        file = Path(out_path) / f'pixel_{i}.fits'
+        mask = pixels == i
+        logger.info(f'\tLength of catalog: {mask.sum()}')
+        write_picca_drq_cat(Z[mask], RA[mask], DEC[mask], out_file=file, THING_ID=THING_ID[mask])
+
 
 def master_to_qso_cat(in_file, out_file, min_zcat=1.7, nside=16, downsampling=1, downsampling_seed=0, randoms_input=False, rsd=True):
     ''' 

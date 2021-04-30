@@ -1,6 +1,6 @@
 import argparse
 from pathlib import Path
-from LyaPlotter.tools import master_to_qso_cat, colore_to_drq_cat
+from LyaPlotter.tools import master_to_qso_cat, colore_to_drq_cat, trim_catalog_into_pixels
 import logging
 import sys
 
@@ -40,3 +40,20 @@ def colore_to_drq_script(): #pragma: no cover
     logging.basicConfig(stream=sys.stdout, level=level)
 
     colore_to_drq_cat(args.in_sim, args.out_file, ifiles=args.ifiles, source=args.source, downsampling=args.downsampling, rsd=args.rsd, valid_pixels=args.valid_pixels)
+
+def trim_catalog_into_pixels_script(): #pragma: no cover
+    parser = argparse.ArgumentParser(description='Method to trim a catalog into multiple catalogs (one for each healpix pixel')
+
+    parser.add_argument('--in-cat', required=True, type=Path, help='Input catalog')
+    parser.add_argument('--out-path', required=True, type=Path, help='Output dir for cats (should not exist')
+    parser.add_argument('--nside', required=True, type=int, help='Pixelization of the sky (npix = 12*nside**2)')
+    parser.add_argument('--log-level', default='WARNING', choices=['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET'])
+
+    args = parser.parse_args()
+    define_logger(args.log_level)
+
+    trim_catalog_into_pixels(args.in_cat, args.out_path, args.nside)
+
+def define_logger(level):
+    level = logging.getLevelName(level)
+    logging.basicConfig(stream=sys.stdout, level=level, format='%(levelname)s:%(name)s:%(funcName)s:%(message)s')
