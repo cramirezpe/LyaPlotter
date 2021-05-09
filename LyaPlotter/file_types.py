@@ -21,6 +21,7 @@ from LyaPlotter.plotter import Plotter
 from LyaPlotter.computations import Computations
 from contextlib import contextmanager
 
+nside = 16
 
 log = logging.getLogger(__name__)
 from functools import cached_property
@@ -56,7 +57,6 @@ class FilesBase:
         RA (list of float): RA from files.
         DEC (list of float): DEC from files.
     '''
-    nside = 16
     data_dictionary = {
         'RA'    : (1,   'RA',   False,  False),
         'DEC'   : (1,   'DEC',  False,  False),
@@ -64,7 +64,7 @@ class FilesBase:
     }
 
 
-    def __init__(self, file_paths, parent_sim=None, downsampling =1):
+    def __init__(self, file_paths, parent_sim=None, downsampling =1, nside=nside):
         '''Inits the File class setting the different information
 
         Args:
@@ -78,6 +78,7 @@ class FilesBase:
 
         self.sim        = parent_sim
         self.downsampling= downsampling
+        self.nside      = nside
 
         self.file_paths = file_paths
         self.N_files    = len(file_paths)
@@ -365,7 +366,7 @@ class DeltasFile():
 
     '''
 
-    def __init__(self, file_paths, downsampling=1):
+    def __init__(self, file_paths, downsampling=1, nside=nside):
         ''' 
 
         Args:
@@ -378,6 +379,7 @@ class DeltasFile():
         self.downsampling = downsampling
         self.file_paths   = file_paths
         self.N_files      = len(file_paths)
+        self.nside        = nside
 
     @contextmanager
     def open_hdulists(self):
@@ -453,13 +455,13 @@ class CoLoReFiles(FilesSkewerBase):
         'z_skewer'      : (4,   'Z',        False,  True)
     }
 
-    def __init__(self, file_paths, lr_max, parent_sim,downsampling):
+    def __init__(self, file_paths, lr_max, parent_sim,downsampling, nside=nside):
         '''Inits the CoLoReFiles object
 
         Args (extending FilesBase init args):
             lr_max (float): Maximum wavelength for masking.
         '''
-        FilesSkewerBase.__init__(self,file_paths,parent_sim, downsampling)        
+        FilesSkewerBase.__init__(self,file_paths,parent_sim, downsampling, nside)        
         self.lr_max             = lr_max
 
     @cached_property
@@ -533,13 +535,13 @@ class TransmissionFiles(FilesSkewerBase):
         'wavelength'    : (2,       None,       True,   True)
     }
 
-    def __init__(self, file_paths, lr_max, parent_sim, downsampling):
+    def __init__(self, file_paths, lr_max, parent_sim, downsampling, nside=nside):
         '''Inits the TransmissionFiles object
 
         Args (extending FilesBase init args):
             lr_max (float): Maximum wavelength for masking.
         '''
-        FilesBase.__init__(self,file_paths, parent_sim, downsampling)
+        FilesBase.__init__(self,file_paths, parent_sim, downsampling, nside)
         self.lr_max         = lr_max
 
     @cached_property
@@ -612,14 +614,14 @@ class PiccaStyleFiles(FilesSkewerBase):
         'values'        : (0,   None,       True,   False)
     }
 
-    def __init__(self,file_paths,lr_max, name, parent_sim, downsampling):
+    def __init__(self,file_paths,lr_max, name, parent_sim, downsampling, nside=nside):
         '''Inits the PiccaStyleFiles object
 
         Args (extending FilesBase init args):
             lr_max (float): Maximum wavelength for masking.
             name (str): Name of the PiccaStyle file (e.g. picca-flux-noRSD-notnorm)
         '''
-        FilesBase.__init__(self,file_paths, parent_sim, downsampling)
+        FilesBase.__init__(self,file_paths, parent_sim, downsampling, nside)
         self.__name__       = name 
         self.lr_max         = lr_max
 
@@ -655,7 +657,7 @@ class Spectra(FilesSkewerBase):
 
     '''
 
-    def __init__(self, arm, spectra_files, truth_files, zbest_files, lr_max=1200., redshift_to_use='best', parent_sim=None, downsampling=1):
+    def __init__(self, arm, spectra_files, truth_files, zbest_files, lr_max=1200., redshift_to_use='best', parent_sim=None, downsampling=1, nside=nside):
         '''Inits the Spectra object.
 
         Args (extending FilesBase init args):
@@ -668,7 +670,7 @@ class Spectra(FilesSkewerBase):
 
         '''
         
-        FilesBase.__init__(self,spectra_files, parent_sim, downsampling)
+        FilesBase.__init__(self,spectra_files, parent_sim, downsampling, nside)
         self.truth      = TruthFiles(truth_files,  parent_sim)
         self.zbest      = BestFiles(zbest_files,   parent_sim)
 
