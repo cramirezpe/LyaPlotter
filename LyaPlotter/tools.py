@@ -109,6 +109,63 @@ def trim_catalog_into_pixels(in_cat, out_path, nside):
         logger.info(f'\tLength of catalog: {mask.sum()}')
         write_picca_drq_cat(Z[mask], RA[mask], DEC[mask], out_file=file, THING_ID=THING_ID[mask])
 
+def generate_random_objects(z, RA, DEC, out_file,  N_rand_N_data=1, nside=16):
+    from scipy.interpolate import interp1d
+
+    logger.info('Generating random catalog')
+    logger.info(f'Sorting by redshift')
+    
+    z_sort = np.sort(z)
+    NDATA = len(z_sort)
+    NRAND = int(NDATA*N_rand_N_data)
+    
+    logger.info(f'Data length: {NDATA}')
+    logger.info(f'Randoms length: {NRAND}')
+
+    valid_pixels = np.unique( healpy.pixelfunc.ang2pix(
+        nside, RA, DEC, lonlat=True, nest=True))
+    
+    logger.info('Creating inverse PDF')
+    p = np.linspace(0, 1, NDATA, endpoint=True) #endpoint set to true will cause a biased estimator... but I chose it anyway to avoid invalid values later on.
+
+    z_gen = interp1d(p, z_sort)
+
+    logger.info('Interpolating redshift')
+    ran1 = np.random.random(int(NRAND))
+    randoms_z = z_gen(ran1)
+
+    #To generate random positions in the pixels we will generate random positions in all the sky and restrict to valid pixels
+    logger.info('Generating random positions in the sky')
+    sky_fraction = len(valid_pixels) / (12*nside**2)
+    logger.debug(f'Sky fraction: {sky_fraction}')
+    randoms_RA = []
+    randoms_DEC = []
+
+    def to_deg(rad):
+        return 180/np.pi * rad
+
+    # To speed up the process we generate all the randoms at once instead of one element at each step; if there are not enough, we iterate reducing the target number
+    while len(randoms_RA) < NRAND:
+        logger.debug(f'Iterating through the generation')
+        randoms_left = NRAND - len(randoms_RA)
+        logger.debug(f'\t{randoms_left} elements left to include\n\tGenerating {int(randoms_left/sky_fraction)} random positions')
+        ran1 = np.random.random(int(randoms_left/sky_fraction))
+        ran2 = np.random.random(int(randoms_left/sky_fraction))
+
+        RAs     = to_deg(np.pi*2*ran1)
+        DECs    = to_deg(np.arcsin(2.*(ran2-0.5)))
+        pixels  = healpy.pixelfunc.ang2pix(nside, RAs, DECs, lonlat=True, nest=True)
+
+        w = np.isin(pixels, valid_pixels)
+        logger.debug(f'Accepted randoms: {w.sum()}')
+        randoms_RA = np.append(randoms_RA, RAs[w])
+        randoms_DEC = np.append(randoms_DEC, DECs[w])
+    
+    randoms_RA = randoms_RA[:NRAND]
+    randoms_DEC = randoms_DEC[:NRAND]
+    
+    write_picca_drq_cat(randoms_z, randoms_RA, randoms_DEC, out_file)
+
 
 def master_to_qso_cat(in_file, out_file, min_zcat=1.7, nside=16, downsampling=1, downsampling_seed=0, randoms_input=False, rsd=True):
     ''' 

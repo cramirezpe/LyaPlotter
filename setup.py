@@ -21,6 +21,7 @@ setuptools.setup(
             'LyaPlotter_test_debug = LyaPlotter.tools:test_debug_mode',
             'LyaPlotter_colore_to_drq = LyaPlotter.scripts.tools_scripts:colore_to_drq_script',
             'LyaPlotter_trim_catalog_into_pixels = LyaPlotter.scripts.tools_scripts:trim_catalog_into_pixels_script',
+            'LyaPlotter_randoms_from_drq = LyaPlotter.scripts.tools_scripts:generate_randoms_from_drq',
         ]
     },
     classifiers=[

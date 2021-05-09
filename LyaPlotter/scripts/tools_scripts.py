@@ -1,6 +1,6 @@
 import argparse
 from pathlib import Path
-from LyaPlotter.tools import master_to_qso_cat, colore_to_drq_cat, trim_catalog_into_pixels
+from LyaPlotter.tools import master_to_qso_cat, colore_to_drq_cat, trim_catalog_into_pixels, generate_random_objects
 import logging
 import sys
 
@@ -53,6 +53,24 @@ def trim_catalog_into_pixels_script(): #pragma: no cover
     define_logger(args.log_level)
 
     trim_catalog_into_pixels(args.in_cat, args.out_path, args.nside)
+
+def generate_randoms_from_drq(): #pragma: no cover
+    parser = argparse.ArgumentParser(description='Generate a random catalog using an existing one to copy footprint and redshift distribution')
+
+    parser.add_argument('--in-cat', required=True, type=Path, help='Input catalog')
+    parser.add_argument('--out-cat', required=True, type=Path, help='Output catalog')
+    parser.add_argument('--nside', required=False, type=int, default=16, help='Pixelization to use when reading the catalog')
+    parser.add_argument('--factor', required=False, type=float, default=1, help='Size factor for the random catalog (compared to the input catalog). (factor=3 means a random catalog three times larger than the input catalog.)')
+    parser.add_argument('--log-level', default='WARNING', choices=['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET'])
+
+    args = parser.parse_args()
+    define_logger(args.log_level)
+
+    from LyaPlotter.file_types import FilesBase
+    in_cat = FilesBase(args.in_cat)
+
+    generate_random_objects(in_cat.z, in_cat.RA, in_cat.DEC, args.out_cat, args.factor, args.nside)
+
 
 def define_logger(level):
     level = logging.getLevelName(level)
