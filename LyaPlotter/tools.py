@@ -12,20 +12,32 @@ from pathlib import Path
 import logging
 logger = logging.getLogger(__name__)
 
-def write_picca_drq_cat(Z, RA, DEC, out_file, THING_ID=None):
+def write_picca_drq_cat(Z, RA, DEC, out_file, THING_ID=None, simplified=False):
 
     from astropy.io import fits
     logger.info('Generating picca-like catalog from input data')
     logger.debug(f'Length of Z:\t{len(Z)}\nLength of RA:\t{len(RA)}\nLength of DEC:\t{len(DEC)}')
     logger.debug(f'Negative RA?\t{(RA<0).sum()}')
-    THING_ID = np.arange(1, len(RA)+1) if THING_ID is None else THING_ID
-    PLATE = THING_ID
-    MJD = THING_ID
-    FIBERID = THING_ID
+
+    if not simplified:
+        THING_ID = np.arange(1, len(RA)+1) if THING_ID is None else THING_ID
+        PLATE = THING_ID
+        MJD = THING_ID
+        FIBERID = THING_ID
 
     logger.info('Building fits columns')
     cols = []
-    for value, label, dtype in zip((RA, DEC, Z, THING_ID, PLATE, MJD, FIBERID), ('RA', 'DEC', 'Z', 'THING_ID', 'MJD', 'FIBERID', 'PLATE'), ('D', 'D', 'D', 'K', 'K', 'K', 'K')):
+    
+    if simplified:
+        values = (RA,DEC,Z)
+        labels = ('RA', 'DEC', 'Z')
+        dtypes = ('D', 'D', 'D')
+    else:
+        values = (RA, DEC, Z, THING_ID, PLATE, MJD, FIBERID)
+        labels = ('RA', 'DEC', 'Z', 'THING_ID', 'MJD', 'FIBERID', 'PLATE')
+        dtypes = ('D', 'D', 'D', 'K', 'K', 'K', 'K')
+
+    for value, label, dtype in zip(values, labels, dtypes):
         cols.append(fits.Column(name=label, format=dtype, array=value))
 
     logger.debug('Defining FITS headers')
@@ -44,7 +56,7 @@ def write_picca_drq_cat(Z, RA, DEC, out_file, THING_ID=None):
     hdulist.writeto(out_file, overwrite=True)
     hdulist.close() 
 
-def colore_to_drq_cat(in_sim, out_file, ifiles=None, source=1, downsampling=1, rsd=False, valid_pixels=None):
+def colore_to_drq_cat(in_sim, out_file, ifiles=None, source=1, downsampling=1, rsd=False, valid_pixels=None, simplified=False):
     ''' Method to extract a picca-like catalog from a CoLoRe box
 
         Args:
@@ -53,6 +65,7 @@ def colore_to_drq_cat(in_sim, out_file, ifiles=None, source=1, downsampling=1, r
             source (int, optional): Sources to analyse from the CoLoRe output.
             downsampling (float, optional): Downsampling to use when copying objects from one catalog to the other. (default: 1)
             rsd (bool): Apply rsd
+            simplified (bool, optional): Use simplified catalogs (only RA DEC z)
     '''
     from LyaPlotter.sims import CoLoReSim
     from astropy.io import fits
@@ -77,7 +90,7 @@ def colore_to_drq_cat(in_sim, out_file, ifiles=None, source=1, downsampling=1, r
         DEC = data.DEC[mask]
 
     print(f'Length of resulting catalog: \t{len(Z)}')
-    write_picca_drq_cat(Z, RA, DEC, out_file)
+    write_picca_drq_cat(Z, RA, DEC, out_file, simplified=simplified)
 
 def trim_catalog_into_pixels(in_cat, out_path, nside):
     ''' Method to trim a catalog into multiple catalogs (one for each healpix pixel)
@@ -109,7 +122,14 @@ def trim_catalog_into_pixels(in_cat, out_path, nside):
         logger.info(f'\tLength of catalog: {mask.sum()}')
         write_picca_drq_cat(Z[mask], RA[mask], DEC[mask], out_file=file, THING_ID=THING_ID[mask])
 
-def generate_random_objects(z, RA, DEC, out_file,  N_rand_N_data=1, nside=16):
+def generate_random_objects(z, RA, DEC, out_file,  N_rand_N_data=1, do_sky_analysis=False, nside=16):
+    ''' Generate random objects from a give catalog. 
+    
+    Args:
+        do_sky_analysis (bool, optional): Perform a sky analysis to generate a similar footprint. (Default: False).
+        nside (int, optional): Pixelization of the sky when performing sky analysis. (Default: 16).
+
+    '''
     from scipy.interpolate import interp1d
 
     logger.info('Generating random catalog')
@@ -121,9 +141,6 @@ def generate_random_objects(z, RA, DEC, out_file,  N_rand_N_data=1, nside=16):
     
     logger.info(f'Data length: {NDATA}')
     logger.info(f'Randoms length: {NRAND}')
-
-    valid_pixels = np.unique( healpy.pixelfunc.ang2pix(
-        nside, RA, DEC, lonlat=True, nest=True))
     
     logger.info('Creating inverse PDF')
     p = np.linspace(0, 1, NDATA, endpoint=True) #endpoint set to true will cause a biased estimator... but I chose it anyway to avoid invalid values later on.
@@ -134,17 +151,25 @@ def generate_random_objects(z, RA, DEC, out_file,  N_rand_N_data=1, nside=16):
     ran1 = np.random.random(int(NRAND))
     randoms_z = z_gen(ran1)
 
+    if do_sky_analysis:
     #To generate random positions in the pixels we will generate random positions in all the sky and restrict to valid pixels
-    logger.info('Generating random positions in the sky')
-    sky_fraction = len(valid_pixels) / (12*nside**2)
-    logger.debug(f'Sky fraction: {sky_fraction}')
-    randoms_RA = []
-    randoms_DEC = []
+        logger.info('Reading pixels from catalogue')
+        valid_pixels = np.unique( healpy.pixelfunc.ang2pix(
+            nside, RA, DEC, lonlat=True, nest=True))
+
+        sky_fraction = len(valid_pixels) / (12*nside**2)
+        logger.debug(f'Sky fraction: {sky_fraction}')
+    else:
+        sky_fraction = 1
 
     def to_deg(rad):
         return 180/np.pi * rad
 
+    randoms_RA = []
+    randoms_DEC = []
+
     # To speed up the process we generate all the randoms at once instead of one element at each step; if there are not enough, we iterate reducing the target number
+    logger.info('Generating random positions in the sky')
     while len(randoms_RA) < NRAND:
         logger.debug(f'Iterating through the generation')
         randoms_left = NRAND - len(randoms_RA)
@@ -154,17 +179,22 @@ def generate_random_objects(z, RA, DEC, out_file,  N_rand_N_data=1, nside=16):
 
         RAs     = to_deg(np.pi*2*ran1)
         DECs    = to_deg(np.arcsin(2.*(ran2-0.5)))
-        pixels  = healpy.pixelfunc.ang2pix(nside, RAs, DECs, lonlat=True, nest=True)
 
-        w = np.isin(pixels, valid_pixels)
-        logger.debug(f'Accepted randoms: {w.sum()}')
-        randoms_RA = np.append(randoms_RA, RAs[w])
-        randoms_DEC = np.append(randoms_DEC, DECs[w])
+        if do_sky_analysis:
+            pixels  = healpy.pixelfunc.ang2pix(nside, RAs, DECs, lonlat=True, nest=True)
+            w = np.isin(pixels, valid_pixels)            
+            logger.debug(f'Accepted randoms: {w.sum()}')
+        
+            randoms_RA = np.append(randoms_RA, RAs[w])
+            randoms_DEC = np.append(randoms_DEC, DECs[w])
+        else:
+            randoms_RA = np.append(randoms_RA, RAs)
+            randoms_DEC = np.append(randoms_DEC, DECs)
     
     randoms_RA = randoms_RA[:NRAND]
     randoms_DEC = randoms_DEC[:NRAND]
     
-    write_picca_drq_cat(randoms_z, randoms_RA, randoms_DEC, out_file)
+    write_picca_drq_cat(randoms_z, randoms_RA, randoms_DEC, out_file, simplified=True)
 
 
 def master_to_qso_cat(in_file, out_file, min_zcat=1.7, nside=16, downsampling=1, downsampling_seed=0, randoms_input=False, rsd=True):

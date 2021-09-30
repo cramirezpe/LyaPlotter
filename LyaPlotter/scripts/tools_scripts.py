@@ -33,13 +33,14 @@ def colore_to_drq_script(): #pragma: no cover
     parser.add_argument('--valid_pixels', default=None, nargs='+', type=int, help='Downsample in pixels')
     parser.add_argument('--downsampling', default=1, type=float, help='Downsampling to use when extracting objects from the output')
     parser.add_argument('--rsd', action='store_true', help='Apply rsd to the objects')
+    parser.add_argument('--simplified', action='store_true', help='Write simplified cats (only RA DEC Z)')
     parser.add_argument('--log-level', default='WARNING', choices=['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET'])
 
     args = parser.parse_args()
     level = logging.getLevelName(args.log_level)
     logging.basicConfig(stream=sys.stdout, level=level)
 
-    colore_to_drq_cat(args.in_sim, args.out_file, ifiles=args.ifiles, source=args.source, downsampling=args.downsampling, rsd=args.rsd, valid_pixels=args.valid_pixels)
+    colore_to_drq_cat(args.in_sim, args.out_file, ifiles=args.ifiles, source=args.source, downsampling=args.downsampling, rsd=args.rsd, valid_pixels=args.valid_pixels, simplified=args.simplified)
 
 def trim_catalog_into_pixels_script(): #pragma: no cover
     parser = argparse.ArgumentParser(description='Method to trim a catalog into multiple catalogs (one for each healpix pixel')
@@ -59,8 +60,9 @@ def generate_randoms_from_drq(): #pragma: no cover
 
     parser.add_argument('--in-cat', required=True, type=Path, help='Input catalog')
     parser.add_argument('--out-cat', required=True, type=Path, help='Output catalog')
-    parser.add_argument('--nside', required=False, type=int, default=16, help='Pixelization to use when reading the catalog')
     parser.add_argument('--factor', required=False, type=float, default=1, help='Size factor for the random catalog (compared to the input catalog). (factor=3 means a random catalog three times larger than the input catalog.)')
+    parser.add_argument('--do-sky-analysis', action='store_true', help='Perform a sky analysis to generate a similar footprint. (Default: False)')
+    parser.add_argument('--nside', required=False, type=int, default=16, help='Pixelization to use when performing sky analysis')
     parser.add_argument('--log-level', default='WARNING', choices=['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET'])
 
     args = parser.parse_args()
@@ -69,7 +71,7 @@ def generate_randoms_from_drq(): #pragma: no cover
     from LyaPlotter.file_types import FilesBase
     in_cat = FilesBase(args.in_cat)
 
-    generate_random_objects(in_cat.z, in_cat.RA, in_cat.DEC, args.out_cat, args.factor, args.nside)
+    generate_random_objects(in_cat.z, in_cat.RA, in_cat.DEC, args.out_cat, args.factor, args.do_sky_analysis, args.nside)
 
 
 def define_logger(level):
