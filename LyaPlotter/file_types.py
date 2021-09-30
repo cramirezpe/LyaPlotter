@@ -596,7 +596,15 @@ class GaussianCoLoReFiles(CoLoReFiles):
     def id(self):
         return self.get_data((*self.data_dictionary['id']))
   
+class DesiCat(FilesBase):
+    ''' Class to handle simple DESI catalogues
 
+    '''
+    data_dictionary = {
+        'RA'            : (1, 'TARGET_RA', False, False),
+        'DEC'           : (1, 'TARGET_DEC', False, False),
+        'z'             : (1,   'Z',    False,  False),
+    }
 class PiccaStyleFiles(FilesSkewerBase):
     '''Class to handle PiccaStyle files output by LyaCoLoRe
 
