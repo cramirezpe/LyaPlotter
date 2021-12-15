@@ -6,7 +6,7 @@ log = logging.getLogger(__name__)
 
 class Computations:
     @classmethod
-    def overall_mean(cls,values,mask):
+    def overall_mean(cls,values,mask): 
         return np.average(values, weights=mask)
     
     @classmethod
@@ -23,8 +23,7 @@ class Computations:
             return np.average(values[:,w],weights=mask[:,w],axis=0)
     
     @classmethod
-    def std_per_pixel(cls,values,mask):
-        w = mask.sum(axis=0)>0
+    def std_per_pixel(cls,values,mask=False):
         mean = cls.mean_per_pixel(values,mask)
         mean_squared = cls.mean_per_pixel(values**2,mask)
         return np.sqrt(mean_squared-mean**2)

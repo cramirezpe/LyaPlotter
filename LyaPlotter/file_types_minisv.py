@@ -1,7 +1,7 @@
 '''
     Module build to analyse different data related to the Andes Data Release.
 '''
-from .file_types import *
+from LyaPlotter.file_types import *
 import numpy as np
 
 

@@ -5,14 +5,16 @@
 '''
 
 from lyacolore import utils
-from .file_types import *
+from LyaPlotter.file_types import *
 import glob
 import os
+import re
+import libconf
 import logging
 from pathlib import Path
 log = logging.getLogger(__name__)
 
-def check_is_list(x):
+def check_is_list(x): #pragma: no cover
     if isinstance(x,list) or isinstance(x,tuple):
         return True
     else:
@@ -53,7 +55,7 @@ class QuickQuasarsSim():
         self.nside      = nside
         self.compression= compression
 
-    def __str__(self):
+    def __str__(self): #pragma: no cover
         return "{} sim. Id: {}\tName: {}\tPath: {}".format(self.sim_class,self.id_,self.__name__,self.sim_path)
 
     @classmethod
@@ -73,7 +75,7 @@ class QuickQuasarsSim():
             sim_paths.add( str(Path(path).parents[3]) )
         return sorted(list(sim_paths), key=lambda folder: os.stat(folder).st_ctime)
 
-    def get_spectra(self, arm, pixels=[0], lr_max=1200., redshift_to_use= 'truth'):
+    def get_spectra(self, arm, pixels=[0], lr_max=1200., redshift_to_use= 'best', downsampling=1):
         ''' Get spectra for a single arm.
 
         It will load the different information from the fits files as they are called. 
@@ -97,7 +99,7 @@ class QuickQuasarsSim():
             zbest_files.append(  utils.get_file_name(dirname,'zbest',  self.nside,pixel,self.compression) )
             spectra_files.append(utils.get_file_name(dirname,'spectra',  self.nside,pixel,self.compression) )
 
-        return Spectra(arm, spectra_files, truth_files, zbest_files, lr_max, redshift_to_use, self)      
+        return Spectra(arm, spectra_files, truth_files, zbest_files, lr_max, redshift_to_use, self, downsampling)      
 
 class CoLoReSim():
     ''' 
@@ -121,17 +123,21 @@ class CoLoReSim():
             sim_path (str): Path to the CoLoRe output.
             name (str, optional): Name to identify the specific simulation when dealing with several.
             file_type (str, optional): Whether the simulation is a "gaussian" or a "2LPT" simulation.
+            
         '''
         self.id_ = id_
+
+        self.sim_path = Path(sim_path)
         
-        if name:
+        if name: #pragma: no cover
             self.__name__ = name
         else:
-            self.__name__ = sim_path[sim_path.rfind('/')+1:]
+            self.__name__ = self.sim_path.name
 
-        self.sim_path = sim_path
         try:
-            self.param_file = sorted(glob.glob(self.sim_path + '/*.cfg'), key=os.sim_path.getmtime)[0]
+            self.param_file = next( self.sim_path.glob('*cfg') )
+            with open(self.param_file) as f:
+                self.param_cfg = libconf.load(f)
         except:
             self.param_file = None
         self.file_type = file_type    
@@ -153,26 +159,33 @@ class CoLoReSim():
             sim_paths.append( path[:path.rfind('/')] )
         return sorted(sim_paths, key=lambda folder: os.stat(folder).st_ctime)
 
-    def __str__(self):
+    def __str__(self): #pragma: no cover
         return "{} sim. Id: {}\tName: {}\tPath: {}".format(self.sim_class,self.id_,self.__name__,self.sim_path)
 
-    def get_Sources(self, ifiles=[0], lr_max=1200.,source=1):
+    def get_Sources(self, ifiles=None, lr_max=1200.,source=1,downsampling=1, nside=16, mask=None):
         ''' Get sources from a CoLoRe simulation.
 
         It will load the different information from the fits files as they are called.
 
         Args:
-            ifiles (list of int, optional): Array with the srcs files that we want to use. 
+            ifiles (list of int, optional): Array with the srcs files that we want to use (default: all the files will be selected). 
             lr_max (float, optional): Maximum wavelength for masking.
             source (int, optional): Sources to analyse from the CoLoRe output.
+            downsampling (float): Downsampling to apply to the data.
 
         Returns:
             A CoLoReFiles object.
         '''
-        check_is_list(ifiles)
-        files            = [self.sim_path + '/out_srcs_s{}_{}.fits'.format(source,ifile) for ifile in ifiles]
+        if ifiles is not None: 
+            check_is_list(ifiles)
+        else:
+            files = self.sim_path.glob(f'out_srcs_s{ source }*')
+            num = max( [int(re.search("(\d+).fits$",file.name).group(1)) for file in files] )
+            ifiles = range(num+1)
 
-        return CoLoReFiles(files, lr_max, self)
+        files            = [self.sim_path / 'out_srcs_s{}_{}.fits'.format(source,ifile) for ifile in ifiles]
+
+        return CoLoReFiles(files, lr_max, self, downsampling=downsampling, nside=nside, mask=mask)
         # self.CoLoReFiles = CoLoReFiles(files,lr_max,self.file_type)
         # return self.CoLoReFiles
 
@@ -210,7 +223,7 @@ class LyaCoLoReSim():
         self.compression= compression
         self.picca_files= {}
 
-    def __str__(self):
+    def __str__(self): #pragma: no cover
         return "{} sim. Id: {}\tName: {}\tPath: {}".format(self.sim_class,self.id_,self.__name__,self.sim_path)
 
     @classmethod
@@ -230,12 +243,13 @@ class LyaCoLoReSim():
             sim_paths.add( str(Path(path).parents[0]) )
         return sorted(list(sim_paths), key=lambda folder: os.stat(folder).st_ctime)
 
-    def get_Transmission(self,  pixels=[0], lr_max=1200.):
+    def get_Transmission(self,  pixels=[0], lr_max=1200., downsampling=1):
         ''' Get transmission for the given pixels:
 
         Args:
             pixels (list of int, optional): Pixels we want to use
             lr_max (float, optional): Set maximum wavelength for mask
+            downsampling (float): Downsampling to apply to the data.
         
         Returns:
             A TransmissionFiles object.
@@ -246,16 +260,17 @@ class LyaCoLoReSim():
             dirname = utils.get_dir_name(self.sim_path, pixel)
             files.append( utils.get_file_name(dirname, 'transmission',     self.nside, pixel, self.compression) )
 
-        return TransmissionFiles(files, lr_max, self)
+        return TransmissionFiles(files, lr_max, self, downsampling=downsampling)
         # self.Transmission = Transmission(files, lr_max, self.file_type)
         # return self.Transmission
 
-    def get_GaussianCoLoRe(self,pixels=[0], lr_max=1200.):
+    def get_GaussianCoLoRe(self,pixels=[0], lr_max=1200., downsampling=1):
         ''' Get colore skewers/velocity files for the given pixels:
 
         Args:
             pixels (list of int, optional): Pixels we want to use
             lr_max (float, optional): Set maximum wavelength for mask
+            downsampling (float): Downsampling to apply to the data.
 
         Returns:
             A GaussianCoLoReFiles object
@@ -265,17 +280,18 @@ class LyaCoLoReSim():
         for pixel in pixels:
             dirname = utils.get_dir_name(self.sim_path, pixel)
             files.append(  utils.get_file_name(dirname, 'gaussian-colore', self.nside, pixel, self.compression)   )
-        return GaussianCoLoReFiles(files, lr_max, self)
+        return GaussianCoLoReFiles(files, lr_max, self, downsampling=downsampling)
         # self.GaussianCoLoRe = GaussianCoLoRe(files, lr_max, self.file_type)
         # return self.GaussianCoLoRe
 
-    def get_PiccaStyleFiles(self,file_name, pixels=[0], lr_max=1200):
+    def get_PiccaStyleFiles(self,file_name, pixels=[0], lr_max=1200, downsampling=1):
         ''' Get values stored in file file_name. It should be the format 'picca' files that we can get from LyaCoLoRe:
 
         Args:
             file_name (str): Name of the file (e.g. picca-flux-noRSD-notnorm)
             pixels (list of int, optional): Pixels we want to use
             lr_max (float, optional): Set maximum wavelength for mask
+            downsampling (float): Downsampling to apply to the data.
 
         Returns:
             A PiccaStyleFiles object
@@ -286,6 +302,6 @@ class LyaCoLoReSim():
             dirname = utils.get_dir_name(self.sim_path, pixel)
             files.append( utils.get_file_name(dirname, file_name,          self.nside, pixel, self.compression) )
 
-        return PiccaStyleFiles(files, lr_max, file_name, self)
+        return PiccaStyleFiles(files, lr_max, file_name, self,downsampling=downsampling)
         # self.picca_files[file_name] = PiccaStyleFiles(files, lr_max,self.file_type,file_name)
         # return self.picca_files[file_name]
