@@ -64,7 +64,7 @@ class FilesBase:
     }
 
 
-    def __init__(self, file_paths, parent_sim=None, downsampling =1, nside=nside):
+    def __init__(self, file_paths, parent_sim=None, downsampling =1, nside=nside, mask=None):
         '''Inits the File class setting the different information
 
         Args:
@@ -79,6 +79,7 @@ class FilesBase:
         self.sim        = parent_sim
         self.downsampling= downsampling
         self.nside      = nside
+        self.mask       = mask
 
         self.file_paths = file_paths
         self.N_files    = len(file_paths)
@@ -138,7 +139,10 @@ class FilesBase:
         Returns:
             A list of RA values (floats)
         '''
-        return self.get_data((*self.data_dictionary['RA']))
+        if self.mask is not None :
+            return self.get_data(*self.data_dictionary['RA'])[self.mask]
+        else:
+            return self.get_data(*self.data_dictionary['RA'])
 
     @cached_property
     def DEC(self):
@@ -147,7 +151,10 @@ class FilesBase:
         Returns:
             A list of DEC values (floats)
         '''
-        return self.get_data((*self.data_dictionary['DEC']))
+        if self.mask is not None :
+            return self.get_data(*self.data_dictionary['DEC'])[self.mask]
+        else:
+            return self.get_data(*self.data_dictionary['DEC'])
 
     @cached_property
     def healpixels(self):
@@ -161,7 +168,11 @@ class FilesBase:
                 self.nside = new_nside
                 self.healpixels
         '''
-        return hp.pixelfunc.ang2pix(self.nside, self.RA, self.DEC, lonlat=True, nest=True)
+        if self.mask is not None :
+            return hp.pixelfunc.ang2pix(self.nside, self.RA, self.DEC, lonlat=True, nest=True)[self.mask]
+        else:
+            return hp.pixelfunc.ang2pix(self.nside, self.RA, self.DEC, lonlat=True, nest=True)
+            
 
     def obj_count_pixel(self, mask=None):
         '''Compute the number of objects for each healpix pixel.
@@ -173,7 +184,10 @@ class FilesBase:
 
     @cached_property
     def z(self):
-        return self.get_data((*self.data_dictionary['z']))
+        if self.mask is not None :
+            return self.get_data(*self.data_dictionary['z'])[self.mask]
+        else:
+            return self.get_data(*self.data_dictionary['z'])
             
    
     @cached_property
@@ -192,13 +206,16 @@ class FilesBase:
         Plotter.plot_locations(ax,self.RA,self.DEC,**kwargs)
         return
 
-    def plot_footprint(self, nside=64, ax=None, **kwargs): #pragma: no cover
+    def plot_footprint(self, nside=None, ax=None, **kwargs): #pragma: no cover
         '''Plot the locations of the QSO in a heatmap, they should be incorporated in self.RA and self.DEC
         
         Args:
             nside (int, obptional): Pixelization of the plot.
             **kwargs (optional): Additional arguments to the plot.
         '''
+        if nside is None:
+            nside = self.nside
+            
         if not ax: 
             log.info('Axis not provided')
             fig, ax = plt.subplots()
@@ -234,12 +251,12 @@ class FilesSkewerBase(FilesBase):
     Attributes (extending FilesBase attributes):
         z_skewer (array of float): Redshift position of each skewer.
         wavelength (array of float): Wavelength of the LyAlpha line at the corresponding z_skewer redshift.
-        mask (array of bool): Mask applied to the skewers.
+        skewer_mask (array of bool): skewer_mask applied to the skewers.
         id (array of int): Id of each QSO skewer.
 
     '''
     wavelength = None
-    mask       = None
+    skewer_mask       = None
 
     @cached_property
     def delta_skewers(self):
@@ -251,7 +268,10 @@ class FilesSkewerBase(FilesBase):
 
         This is the same for every fits file so I should only grab it from one case
         '''
-        return self.get_data(*self.data_dictionary['z_skewer'])
+        if self.mask is not None :
+            return self.get_data(*self.data_dictionary['z_skewer'])[self.mask]
+        else:
+            return self.get_data(*self.data_dictionary['z_skewer'])
 
     @cached_property
     def wavelength(self):
@@ -263,7 +283,10 @@ class FilesSkewerBase(FilesBase):
 
     @cached_property
     def id(self):
-        return self.get_data((*self.data_dictionary['id']))
+        if self.mask is not None :
+            return self.get_data(*self.data_dictionary['id'])[self.mask]
+        else:
+            return self.get_data(*self.data_dictionary['id'])
 
     def single_skewer(self, values_array, axis_values=None, value_name='', ax=None, mockid=None, **kwargs): #pragma: no cover
         '''Plot a single skewer from the FileClass. It returns the axis values and the values plotted. 
@@ -292,11 +315,11 @@ class FilesSkewerBase(FilesBase):
         else:
             raise ValueError('values array shape mismatch')
 
-        return Plotter.plot_skewer(ax, axis_values=axis_values, values=values, value_name=value_name ,weights=self.mask[ind],**kwargs) 
+        return Plotter.plot_skewer(ax, axis_values=axis_values, values=values, value_name=value_name ,weights=self.skewer_mask[ind],**kwargs) 
          
 
     def mean_all_skewers(self, values_array, axis_values=None, value_name='', ax=None, kwargs_hline=None, **kwargs): #pragma: no cover
-        '''Plot the mean value over all the skewers given. It applies the mask given by self.mask. It returns the axis values and the values plotted. 
+        '''Plot the mean value over all the skewers given. It applies the skewer_mask given by self.skewer_mask. It returns the axis values and the values plotted. 
 
         Args:
             values_array (2dim array): All the values (for all skewers) for the value we want to compute. 
@@ -312,11 +335,11 @@ class FilesSkewerBase(FilesBase):
         if not np.any(axis_values): axis_values = self.z_skewer
         if not ax:                  fig, ax = plt.subplots()
 
-        return Plotter.plot_mean_all_skewers(ax,axis_values,values_array,value_name,self.mask, kwargs_hline=kwargs_hline, **kwargs)
+        return Plotter.plot_mean_all_skewers(ax,axis_values,values_array,value_name,self.skewer_mask, kwargs_hline=kwargs_hline, **kwargs)
         
 
     def std_all_skewers(self, values_array, axis_values=None, value_name='', ax=None, kwargs_hline=None, **kwargs): #pragma: no cover
-        '''Plot the std over all the skewers given. It applies the mask given by self.mask. It returns the axis values and the values plotted. 
+        '''Plot the std over all the skewers given. It applies the skewer_mask given by self.skewer_mask. It returns the axis values and the values plotted. 
 
         Args:
             values_array (2dim array): All the values (for all skewers) for the value we want to compute. 
@@ -332,7 +355,7 @@ class FilesSkewerBase(FilesBase):
         if not np.any(axis_values): axis_values = self.z_skewer
         if not ax:                  fig, ax = plt.subplots()
 
-        return Plotter.plot_std_all_skewers(ax,axis_values, values_array, value_name, self.mask, kwargs_hline=kwargs_hline, **kwargs)
+        return Plotter.plot_std_all_skewers(ax,axis_values, values_array, value_name, self.skewer_mask, kwargs_hline=kwargs_hline, **kwargs)
 
     def plot_pdf(self, values, values_name=' ',ax=None, **kwargs): #pragma: no cover
         ''' Return the pdf of the values given. It makes uses of the variables self.z_skewer that must be defined'''
@@ -352,13 +375,13 @@ class FilesSkewerBase(FilesBase):
             else:
                 w = ((self.z_skewer>zbin[0]))
                 label = r'${}<z$'.format(zbin[0])
-            Plotter.plot_dist(ax=ax,values=np.ravel(values[:,w]),bins=d_bins,weights=np.ravel(self.mask[:,w]),density=True,label=label, **kwargs)
+            Plotter.plot_dist(ax=ax,values=np.ravel(values[:,w]),bins=d_bins,weights=np.ravel(self.skewer_mask[:,w]),density=True,label=label, **kwargs)
 
         ax.set_xlabel('$\\delta$')
         ax.set_ylabel('$P(\delta)$')
         ax.legend()
         return
-
+    
 class DeltasFile():
     '''Class to handle Deltas files.
 
@@ -421,25 +444,37 @@ class LyaCoLoReMasterFile(FilesBase):
 
     @cached_property
     def id(self):
-        return self.get_data((*self.data_dictionary['id']))
+        if self.mask is not None :
+            return self.get_data(*self.data_dictionary['id'])[self.mask]
+        else:
+            return self.get_data(*self.data_dictionary['id'])
     
     @cached_property
     def z_noRSD(self):
-        return self.get_data((*self.data_dictionary['z_noRSD']))
+        if self.mask is not None :
+            return self.get_data(*self.data_dictionary['z_noRSD'])[self.mask]
+        else:
+            return self.get_data(*self.data_dictionary['z_noRSD'])
 
     @cached_property
     def pixnum(self):
-        return self.get_data((*self.data_dictionary['pixnum']))
+        if self.mask is not None :
+            return self.get_data(*self.data_dictionary['pixnum'])[self.mask]
+        else:
+            return self.get_data(*self.data_dictionary['pixnum'])
 
     @cached_property
     def filenum(self):
-        return self.get_data((*self.data_dictionary['filenum']))
+        if self.mask is not None :
+            return self.get_data(*self.data_dictionary['filenum'])[self.mask]
+        else:
+            return self.get_data(*self.data_dictionary['filenum'])
 
 class CoLoReFiles(FilesSkewerBase):
     '''Class to handle CoLoRe output files. 
 
     Attributes (extending FilesSkewerBase):
-        lr_max (float): Maximum wavelength for masking.
+        lr_max (float): Maximum wavelength for skewer_masking.
     '''
 
     data_dictionary = {
@@ -455,13 +490,13 @@ class CoLoReFiles(FilesSkewerBase):
         'z_skewer'      : (4,   'Z',        False,  True)
     }
 
-    def __init__(self, file_paths, lr_max, parent_sim,downsampling, nside=nside):
+    def __init__(self, file_paths, lr_max, parent_sim,downsampling, nside=nside, mask=None):
         '''Inits the CoLoReFiles object
 
         Args (extending FilesBase init args):
-            lr_max (float): Maximum wavelength for masking.
+            lr_max (float): Maximum wavelength for skewer_masking.
         '''
-        FilesSkewerBase.__init__(self,file_paths,parent_sim, downsampling, nside)        
+        FilesSkewerBase.__init__(self,file_paths,parent_sim, downsampling, nside, mask)        
         self.lr_max             = lr_max
 
     @cached_property
@@ -471,41 +506,56 @@ class CoLoReFiles(FilesSkewerBase):
 
     @cached_property
     def dz_rsd(self):
-        return self.get_data((*self.data_dictionary['dz_rsd']))
+        if self.mask is not None :
+            return self.get_data(*self.data_dictionary['dz_rsd'])[self.mask]
+        else:
+            return self.get_data(*self.data_dictionary['dz_rsd'])
 
     @cached_property
     def D_skewer(self):
         ''' Returns the growth factor at each position on the skewer
         '''
-        return self.get_data(*self.data_dictionary['D_skewer'])
-
+        if self.mask is not None :
+            return self.get_data(*self.data_dictionary['D_skewer'])[self.mask]
+        else:
+            return self.get_data(*self.data_dictionary['D_skewer'])
+            
     @cached_property
     def id(self): #pragma: no cover
         '''Id of each skewer
 
         Apparently they do not have an Id so I'll let their name just be a number
         '''
-        return  list(range(self.N_obj))
+        return  np.asarray(range(self.N_obj))
 
     @cached_property
     def E1(self):
-        return self.get_data(*self.data_dictionary['E1'])
+        if self.mask is not None :
+            return self.get_data(*self.data_dictionary['E1'])[self.mask]
+        else:
+            return self.get_data(*self.data_dictionary['E1'])
     
     @cached_property
     def E2(self):
-        return self.get_data(*self.data_dictionary['E2'])
+        if self.mask is not None :
+            return self.get_data(*self.data_dictionary['E2'])[self.mask]
+        else:
+            return self.get_data(*self.data_dictionary['E2'])
 
     @cached_property
     def wavelength(self):
         return  utils.lya_rest * (1 + self.z_skewer)
 
     @cached_property
-    def mask(self):
+    def skewer_mask(self):
         return  utils.make_IVAR_rows(self.lr_max, self.z, np.log10(utils.lya_rest*(1+self.z_skewer)))
 
     @cached_property
     def vrad(self):
-        return self.get_data(*self.data_dictionary['vrad'])
+        if self.mask is not None :
+            return self.get_data(*self.data_dictionary['vrad'])[self.mask]
+        else:
+            return self.get_data(*self.data_dictionary['vrad'])
 
 class TruthFiles(FilesBase):
     '''TruthFiles can be handled with the information given in FilesBase'''
@@ -519,7 +569,7 @@ class TransmissionFiles(FilesSkewerBase):
     '''Class to handle LyaCoLoRe transmission files.
 
     Attributes (extending FilesSkewerBase):
-        lr_max (float): Maximum wavelength for masking.
+        lr_max (float): Maximum wavelength for skewer_masking.
     '''
 
     data_dictionary = {
@@ -535,34 +585,43 @@ class TransmissionFiles(FilesSkewerBase):
         'wavelength'    : (2,       None,       True,   True)
     }
 
-    def __init__(self, file_paths, lr_max, parent_sim, downsampling, nside=nside):
+    def __init__(self, file_paths, lr_max, parent_sim, downsampling, nside=nside, mask=None):
         '''Inits the TransmissionFiles object
 
         Args (extending FilesBase init args):
-            lr_max (float): Maximum wavelength for masking.
+            lr_max (float): Maximum wavelength for skewer_masking.
         '''
-        FilesBase.__init__(self,file_paths, parent_sim, downsampling, nside)
+        FilesBase.__init__(self,file_paths, parent_sim, downsampling, nside, mask)
         self.lr_max         = lr_max
 
     @cached_property
     def z_noRSD(self):
-        return self.get_data(*self.data_dictionary['Z_noRSD'])
+        if self.mask is not None :
+            return self.get_data(*self.data_dictionary['Z_noRSD'])[self.mask]
+        else:
+            return self.get_data(*self.data_dictionary['Z_noRSD'])
     
     @cached_property
     def z_skewer(self):
         return  (self.wavelength - utils.lya_rest)/utils.lya_rest
     
     @cached_property
-    def mask(self):
+    def skewer_mask(self):
         return  utils.make_IVAR_rows(self.lr_max,self.z,np.log10(self.wavelength))
 
     @cached_property
     def lya_absorption(self):  
-        return self.get_data(*self.data_dictionary['lya_absorption'])
+        if self.mask is not None :
+            return self.get_data(*self.data_dictionary['lya_absorption'])[self.mask]
+        else:
+            return self.get_data(*self.data_dictionary['lya_absorption'])
  
     @cached_property
     def lyb_absorption(self):
-        return self.get_data(*self.data_dictionary['lyb_absorption'])
+        if self.mask is not None :
+            return self.get_data(*self.data_dictionary['lyb_absorption'])[self.mask]
+        else:
+            return self.get_data(*self.data_dictionary['lyb_absorption'])
 
     @cached_property
     def delta_lya_absorption(self):
@@ -574,7 +633,10 @@ class TransmissionFiles(FilesSkewerBase):
 
     @cached_property
     def vrad(self):
-        return self.get_data(*self.data_dictionary['vrad'])
+        if self.mask is not None :
+            return self.get_data(*self.data_dictionary['vrad'])[self.mask]
+        else:
+            return self.get_data(*self.data_dictionary['vrad'])
 
 class GaussianCoLoReFiles(CoLoReFiles):
     '''Class to handle GaussianCoLoRe files output by LyaCoLoRe. 
@@ -594,7 +656,10 @@ class GaussianCoLoReFiles(CoLoReFiles):
 
     @cached_property
     def id(self):
-        return self.get_data((*self.data_dictionary['id']))
+        if self.mask is not None :
+            return self.get_data(*self.data_dictionary['id'])[self.mask]
+        else:
+            return self.get_data(*self.data_dictionary['id'])
   
 class DesiCat(FilesBase):
     ''' Class to handle simple DESI catalogues
@@ -609,7 +674,7 @@ class PiccaStyleFiles(FilesSkewerBase):
     '''Class to handle PiccaStyle files output by LyaCoLoRe
 
     Attributes (extending FilesSkewerBase):
-        lr_max (float): Maximum wavelength for masking.
+        lr_max (float): Maximum wavelength for skewer_masking.
         name (str): Name of the PiccaStyle file (e.g. picca-flux-noRSD-notnorm)
     '''
 
@@ -622,14 +687,14 @@ class PiccaStyleFiles(FilesSkewerBase):
         'values'        : (0,   None,       True,   False)
     }
 
-    def __init__(self,file_paths,lr_max, name, parent_sim, downsampling, nside=nside):
+    def __init__(self,file_paths,lr_max, name, parent_sim, downsampling, nside=nside, mask=None):
         '''Inits the PiccaStyleFiles object
 
         Args (extending FilesBase init args):
-            lr_max (float): Maximum wavelength for masking.
+            lr_max (float): Maximum wavelength for skewer_masking.
             name (str): Name of the PiccaStyle file (e.g. picca-flux-noRSD-notnorm)
         '''
-        FilesBase.__init__(self,file_paths, parent_sim, downsampling, nside)
+        FilesBase.__init__(self,file_paths, parent_sim, downsampling, nside, mask)
         self.__name__       = name 
         self.lr_max         = lr_max
 
@@ -642,12 +707,15 @@ class PiccaStyleFiles(FilesSkewerBase):
         return  (self.wavelength - utils.lya_rest)/utils.lya_rest
     
     @cached_property
-    def mask(self):
+    def skewer_mask(self):
         return  utils.make_IVAR_rows(self.lr_max,self.z,np.log10(self.wavelength))
 
     @cached_property
     def values(self):
-        return self.get_data(*self.data_dictionary['values'])
+        if self.mask is not None :
+            return self.get_data(*self.data_dictionary['values'])[self.mask]
+        else:
+            return self.get_data(*self.data_dictionary['values'])
 
 class Spectra(FilesSkewerBase):
     '''Class to handle QuickQuasars output spectra files. 
@@ -657,7 +725,7 @@ class Spectra(FilesSkewerBase):
         spectra_files (list of str): Overriding file_paths from FilesBase
         truth_files (list of str): List of paths to the different truth_files
         zbest_files (list of str): List of paths to the different zbest_files
-        lr_max (float): Set maximum wavelength for masking purposes 
+        lr_max (float): Set maximum wavelength for skewer_masking purposes 
         redhisft_to_use (str): We need a redshift for the Quasar to compute quantities (truth or best).
 
         truth (Files object): Object with the informatoin from the truth files.
@@ -665,7 +733,7 @@ class Spectra(FilesSkewerBase):
 
     '''
 
-    def __init__(self, arm, spectra_files, truth_files, zbest_files, lr_max=1200., redshift_to_use='best', parent_sim=None, downsampling=1, nside=nside):
+    def __init__(self, arm, spectra_files, truth_files, zbest_files, lr_max=1200., redshift_to_use='best', parent_sim=None, downsampling=1, nside=nside, mask=None):
         '''Inits the Spectra object.
 
         Args (extending FilesBase init args):
@@ -673,12 +741,12 @@ class Spectra(FilesSkewerBase):
             spectra_files (list of str): Overriding file_paths from FilesBase
             truth_files (list of str): List of paths to the different truth_files
             zbest_files (list of str): List of paths to the different zbest_files
-            lr_max (float,optional): Set maximum wavelength for masking purposes 
+            lr_max (float,optional): Set maximum wavelength for skewer_masking purposes 
             redhisft_to_use (str,optional): We need a redshift for the Quasar to compute quantities (truth or best).
 
         '''
         
-        FilesBase.__init__(self,spectra_files, parent_sim, downsampling, nside)
+        FilesBase.__init__(self,spectra_files, parent_sim, downsampling, nside, mask)
         self.truth      = TruthFiles(truth_files,  parent_sim)
         self.zbest      = BestFiles(zbest_files,   parent_sim)
 
@@ -709,9 +777,12 @@ class Spectra(FilesSkewerBase):
         return  (self.wavelength - utils.lya_rest)/utils.lya_rest
     
     @cached_property
-    def mask(self):
+    def skewer_mask(self):
         return  utils.make_IVAR_rows( self.lr_max, self.z, np.log10(self.wavelength) )
 
     @cached_property
     def flux(self):
-        return self.get_data(*self.data_dictionary['flux'])
+        if self.mask is not None :
+            return self.get_data(*self.data_dictionary['flux'])[self.mask]
+        else:
+            return self.get_data(*self.data_dictionary['flux'])
