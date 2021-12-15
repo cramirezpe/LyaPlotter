@@ -1,6 +1,6 @@
 import argparse
 from pathlib import Path
-from LyaPlotter.tools import master_to_qso_cat, colore_to_drq_cat, trim_catalog_into_pixels, generate_random_objects
+from LyaPlotter.tools import master_to_qso_cat, colore_to_drq_cat, trim_catalog_into_pixels, generate_random_objects_from_data, generate_random_objects_from_nz_file
 import logging
 import sys
 
@@ -61,8 +61,9 @@ def generate_randoms_from_drq(): #pragma: no cover
     parser.add_argument('--in-cat', required=True, type=Path, help='Input catalog')
     parser.add_argument('--out-cat', required=True, type=Path, help='Output catalog')
     parser.add_argument('--factor', required=False, type=float, default=1, help='Size factor for the random catalog (compared to the input catalog). (factor=3 means a random catalog three times larger than the input catalog.)')
-    parser.add_argument('--do-sky-analysis', action='store_true', help='Perform a sky analysis to generate a similar footprint. (Default: False)')
-    parser.add_argument('--nside', required=False, type=int, default=16, help='Pixelization to use when performing sky analysis')
+    parser.add_argument('--pixel_footprint', type=int, nargs='+', default=None, help='Footprint randoms should span. (Default: None, full_sky)')
+    parser.add_argument('--nside', required=False, type=int, default=2, help='Pixelizaton of the footprint. (Default 2)')
+    parser.add_argument('--method', default='full_sky_dice', choices=['full_sky_dice', 'pixel'], help='Method to generate random positons in the sky: full_sky_dice (throw randoms at the whole sky and then removing the ones not matching) ; pixel (make random pixel by pixel)')
     parser.add_argument('--log-level', default='WARNING', choices=['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET'])
 
     args = parser.parse_args()
@@ -71,7 +72,27 @@ def generate_randoms_from_drq(): #pragma: no cover
     from LyaPlotter.file_types import FilesBase
     in_cat = FilesBase(args.in_cat)
 
-    generate_random_objects(in_cat.z, in_cat.RA, in_cat.DEC, args.out_cat, args.factor, args.do_sky_analysis, args.nside)
+    generate_random_objects_from_data(in_cat.z, in_cat.RA, in_cat.DEC, args.out_cat, args.factor, args.pixel_footprint, args.nside, method=args.method)
+
+def generate_randoms_from_dndz(): #pragma: no cover
+    parser = argparse.ArgumentParser(description=' Generate random objects from a given dndz distribution.')
+
+    parser.add_argument('--dndz_file', required=True, type=Path, help='Input filename to read dndz')
+    parser.add_argument('--out-cat', required=True, type=Path, help='Output catalog')
+    parser.add_argument('--zmin', type=float, default=None, help='Min. redshift. (Default: min redshift in file')
+    parser.add_argument('--zmax', type=float, default=None, help='Max. redshift. (Default: max redshift in file')
+    parser.add_argument('--factor', required=False, type=float, default=1, help='Size factor for the random catalog (compared to the input catalog). (factor=3 means a random catalog three times larger than the input catalog.)')
+    parser.add_argument('--pixel_footprint', type=int, nargs='+', default=None, help='Footprint randoms should span. (Default: None, full_sky)')
+    parser.add_argument('--nside', required=False, type=int, default=2, help='Pixelizaton of the footprint. (Default 2)')
+    parser.add_argument('--method', default='full_sky_dice', choices=['full_sky_dice', 'pixel'], help='Method to generate random positons in the sky: full_sky_dice (throw randoms at the whole sky and then removing the ones not matching) ; pixel (make random pixel by pixel)')
+    parser.add_argument('--log-level', default='WARNING', choices=['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET'])
+
+    args = parser.parse_args()
+    define_logger(args.log_level)
+
+    from LyaPlotter.file_types import FilesBase
+
+    generate_random_objects_from_nz_file(dndz_file=args.dndz_file, out_file=args.out_cat, zmin=args.zmin, zmax=args.zmax, N_factor=args.factor, pixel_footprint=args.pixel_footprint, nside=args.nside, method=args.method)
 
 
 def define_logger(level):

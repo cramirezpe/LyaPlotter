@@ -22,6 +22,7 @@ setuptools.setup(
             'LyaPlotter_colore_to_drq = LyaPlotter.scripts.tools_scripts:colore_to_drq_script',
             'LyaPlotter_trim_catalog_into_pixels = LyaPlotter.scripts.tools_scripts:trim_catalog_into_pixels_script',
             'LyaPlotter_randoms_from_drq = LyaPlotter.scripts.tools_scripts:generate_randoms_from_drq',
+            'LyaPlotter_randoms_from_dndz = LyaPlotter.scripts.tools_scripts:generate_randoms_from_dndz',
         ]
     },
     classifiers=[
@@ -29,5 +30,5 @@ setuptools.setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    python_requires='>=3.6',
+    python_requires='>=3.8',
 )   

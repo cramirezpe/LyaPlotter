@@ -111,7 +111,7 @@ def trim_catalog_into_pixels(in_cat, out_path, nside):
     Z = h[1]['Z'][:]
     RA = h[1]['RA'][:]
     DEC = h[1]['DEC'][:]
-    THING_ID = h[1]['THING_ID'][:]
+
 
     pixels = healpy.ang2pix(nside, RA, DEC, lonlat=True)
 
@@ -120,15 +120,71 @@ def trim_catalog_into_pixels(in_cat, out_path, nside):
         file = Path(out_path) / f'pixel_{i}.fits'
         mask = pixels == i
         logger.info(f'\tLength of catalog: {mask.sum()}')
-        write_picca_drq_cat(Z[mask], RA[mask], DEC[mask], out_file=file, THING_ID=THING_ID[mask])
+        write_picca_drq_cat(Z[mask], RA[mask], DEC[mask], out_file=file, THING_ID=None, simplified=True)
 
-def generate_random_objects(z, RA, DEC, out_file,  N_rand_N_data=1, do_sky_analysis=False, nside=16):
-    ''' Generate random objects from a give catalog. 
+def generate_random_objects_from_nz_file(dndz_file, out_file, zmin=None, zmax=None, N_factor=1, pixel_footprint=None, nside=2, method='full_sky_dice'):
+    ''' Generate random objects from a given dndz distribution.
+
+    Args:
+        dndz_file (Path): Input filename to read dndz.
+        out_file (Path): Output path to save the random catalog.
+        zmin (float, optional): Min. redshift. (Default: min redshift in file).
+        zmax (float, optional): Max. redshift. (Default: max redshift in file).
+        N_factor (float, optional): N_rand/N_data assuming N_data from dndz file, and dndz in units of deg^-2.  (Default: 1)
+        pixel_footprint (array of int, optional): Footprint randoms should span. (Default: full sky)
+        nside (int, optional): Nside for the previous footprint pixels. (Default: 2)
+        method (str, optonal): Method to generate random positions in the sky. Options:
+            - full_sky_dice (throw randoms at the whole sky and then removing the ones not matching). (Default)
+            - pixel (make random pixel by pixel). 
+    '''
+    from scipy.interpolate import interp1d 
+    from scipy.integrate import quad
+
+    dndz_file = Path(dndz_file)
+
+    logger.info(f'Generating random catalog from file: {str(dndz_file)}')
+    in_z, in_nz = np.loadtxt(dndz_file, unpack=True)
+
+    zmin = zmin if zmin != None else in_z[0]
+    zmax = zmax if zmax != None else in_z[-1]
+
+    # Cumulative distribution
+    in_Nz = np.cumsum(in_nz)
+    N = interp1d(in_z, in_Nz)
+    N_inv = interp1d(in_Nz, in_z)
+    
+    pixarea = healpy.pixelfunc.nside2pixarea(nside, degrees=True)
+    if pixel_footprint is None:
+        pixels = 48
+    else:
+        pixels = len(pixel_footprint)
+    
+    area = pixarea*pixels
+    interpolation = interp1d(in_z, in_nz)
+    NRAND = int(quad(interpolation, zmin, zmax)[0]*area)
+
+    logger.debug('Generating random redshifts')
+    ran = np.random.random(NRAND)
+    z = N_inv( ran*(N(zmax)-N(zmin)) + N(zmin) )
+
+    RA, DEC = generate_random_positions(NRAND, pixels=pixel_footprint, nside=nside, method=method)
+
+    write_picca_drq_cat(z, RA, DEC, out_file, simplified=True)
+
+def generate_random_objects_from_data(z, RA, DEC, out_file, N_factor=1, pixel_footprint=None, nside=2, method='full_sky_dice'):
+    ''' Generate random objects from a given catalogue
     
     Args:
-        do_sky_analysis (bool, optional): Perform a sky analysis to generate a similar footprint. (Default: False).
-        nside (int, optional): Pixelization of the sky when performing sky analysis. (Default: 16).
-
+        z (array of float): Redshift values from catalog.
+        RA (array of float): Right Ascention values from catalog.
+        DEC (array of float): Declination values from catalog.
+        out_file (Path): Output path to save the random catalog.
+        N_factor (float, optional): N_rand/N_data assuming N_data from dndz file, and dndz in units of deg^-2.  (Default: 1)
+        pixel_footprint (array of int, optional): Footprint randoms should span. (Default: full sky)
+        nside (int, optional): Nside for the previous footprint pixels. (Default: 2)
+        method (str, optonal): Method to generate random positions in the sky. Options:
+            - full_sky_dice (throw randoms at the whole sky and then removing the ones not matching). (Default)
+            - pixel (make random pixel by pixel). 
     '''
     from scipy.interpolate import interp1d
 
@@ -137,7 +193,7 @@ def generate_random_objects(z, RA, DEC, out_file,  N_rand_N_data=1, do_sky_analy
     
     z_sort = np.sort(z)
     NDATA = len(z_sort)
-    NRAND = int(NDATA*N_rand_N_data)
+    NRAND = int(NDATA*N_factor)
     
     logger.info(f'Data length: {NDATA}')
     logger.info(f'Randoms length: {NRAND}')
@@ -149,52 +205,119 @@ def generate_random_objects(z, RA, DEC, out_file,  N_rand_N_data=1, do_sky_analy
 
     logger.info('Interpolating redshift')
     ran1 = np.random.random(int(NRAND))
-    randoms_z = z_gen(ran1)
+    z = z_gen(ran1)
+    
+    RA, DEC = generate_random_positions(NRAND, pixels=pixel_footprint, nside=nside, method=method)
+    
+    write_picca_drq_cat(z, RA, DEC, out_file, simplified=True)
 
-    if do_sky_analysis:
-    #To generate random positions in the pixels we will generate random positions in all the sky and restrict to valid pixels
-        logger.info('Reading pixels from catalogue')
-        valid_pixels = np.unique( healpy.pixelfunc.ang2pix(
-            nside, RA, DEC, lonlat=True, nest=True))
+def generate_random_positions(NRAND, pixels=None, nside=2, method='full_sky_dice'):
+    '''Generate random positions in the sky
+    
+    Args:
+        NRAND (int): Number of positions to generate.
+        pixels (array of int, optional): Pixels to generate randoms in. (Default: None -> all sky).
+        nside (int, optional): Nside for the pixelization of pixels. (Default: 2).
+        method (str, optional): Method to generate random positions. Options:
+            - full_sky_dice: throw randoms at the whole sky and then remove the ones not matching any pixel. (Default).
+            - pixel: Generate randoms around each pixel, discarding less number of randoms if the footprint is small enough.
+    ''' 
+    logger.info(f'Computing random positions in the sky')
+    if pixels is None:
+        logger.info('No pixel mask added. Computing pixels for the full sky')
+        ran1 = np.random.random(int(NRAND))
+        ran2 = np.random.random(int(NRAND))
 
-        sky_fraction = len(valid_pixels) / (12*nside**2)
-        logger.debug(f'Sky fraction: {sky_fraction}')
+        RA = np.degrees(np.pi*2*ran1)
+        DEC = np.degrees(np.arcsin(2.*(ran2-0.5)))
+
+        return RA, DEC
     else:
-        sky_fraction = 1
+        if method == 'full_sky_dice':
+            logger.info('Computing randoms for full sky and discarding the ones not in footprint')
+            sky_fraction = len(pixels) / (12*nside**2)
+            logger.debug(f'Sky fraction: {sky_fraction}')
 
-    def to_deg(rad):
-        return 180/np.pi * rad
+            RA = []
+            DEC = []
 
-    randoms_RA = []
-    randoms_DEC = []
+            while len(RA) < NRAND:
+                logger.debug('Iterating through the random generator')
+                randoms_left = NRAND - len(RA)
+                randoms_to_generate = int(randoms_left/sky_fraction)
+                logger.debug(f'\t{randoms_left} elements left to include\n\tGenerating {randoms_to_generate} random positions')
+                ran1 = np.random.random(randoms_to_generate)
+                ran2 = np.random.random(randoms_to_generate)
 
-    # To speed up the process we generate all the randoms at once instead of one element at each step; if there are not enough, we iterate reducing the target number
-    logger.info('Generating random positions in the sky')
-    while len(randoms_RA) < NRAND:
-        logger.debug(f'Iterating through the generation')
-        randoms_left = NRAND - len(randoms_RA)
-        logger.debug(f'\t{randoms_left} elements left to include\n\tGenerating {int(randoms_left/sky_fraction)} random positions')
-        ran1 = np.random.random(int(randoms_left/sky_fraction))
-        ran2 = np.random.random(int(randoms_left/sky_fraction))
+                RAs     = np.degrees(np.pi*2*ran1)
+                DECs    = np.degrees(np.arcsin(2.*(ran2-0.5)))
 
-        RAs     = to_deg(np.pi*2*ran1)
-        DECs    = to_deg(np.arcsin(2.*(ran2-0.5)))
+                gen_pixels = healpy.pixelfunc.ang2pix(nside, RAs, DECs, lonlat=True)
+                w = np.isin(gen_pixels, pixels)
+                logger.debug(f'Accepted randoms: {w.sum()}')
 
-        if do_sky_analysis:
-            pixels  = healpy.pixelfunc.ang2pix(nside, RAs, DECs, lonlat=True, nest=True)
-            w = np.isin(pixels, valid_pixels)            
-            logger.debug(f'Accepted randoms: {w.sum()}')
+                RA = np.append(RA, RAs[w])
+                DEC = np.append(DEC, DECs[w])
+            
+            return RA, DEC
         
-            randoms_RA = np.append(randoms_RA, RAs[w])
-            randoms_DEC = np.append(randoms_DEC, DECs[w])
+        elif method == 'pixel':
+            logger.info('Computing random positions around valid pixels')
+
+            # First thing is to poisson sampling the pixels I have
+            # I'll need to match exactly the number of input pixels
+            # for convenience, therefore I'd need to add extra obj
+            # until the overall number of randoms is matched
+            _lambda = NRAND / len(pixels)
+            randoms_per_pixel = np.random.poisson(_lambda, len(pixels))
+            extra_objs = randoms_per_pixel.sum() - NRAND
+            if extra_objs > 0:
+                for i in range(np.abs(extra_objs)):
+                    randoms_per_pixel[np.random.randint(0, len(pixels))] -= 1
+            elif extra_objs < 0:
+                for i in range(np.abs(extra_objs)):
+                    randoms_per_pixel[np.random.randint(0, len(pixels))] += 1
+
+            pix_area = healpy.pixelfunc.nside2pixarea(nside)
+            _index = 0
+            RA = []
+            DEC = []
+
+            for pixel, N in zip(pixels, randoms_per_pixel):
+                logger.info(f'Computing random positions for pixel {pixel}')
+                pixel_center = healpy.pix2ang(nside=nside, ipix=pixel)
+                corners = healpy.rotator.vec2dir(
+                    healpy.boundaries(nside, [pixel], step=1000)[0]
+                )
+                th_range = (min(corners[0]), max(corners[0]))
+                ph_range = (min(corners[1]), max(corners[1]))
+
+                range_size = np.abs((ph_range[1]-ph_range[0]) * (np.cos(th_range[0])-np.cos(th_range[1])))
+
+                TH = []
+                PH = []
+                valid_fraction = pix_area / range_size
+                while len(TH) < N:
+                    randoms_left = N - len(PH)
+                    logger.debug(f'Randoms left: {randoms_left}')
+                    ran1 = np.random.random(int(randoms_left/valid_fraction))
+                    ran2 = np.random.random(int(randoms_left/valid_fraction))
+
+                    PHs = ran1*(ph_range[1]-ph_range[0]) + ph_range[0]
+                    THs = np.arccos( np.cos(th_range[0]) - ran2*( np.cos(th_range[0])-np.cos(th_range[1]) ) )
+                    
+                    new_pixels = healpy.pixelfunc.ang2pix(nside, THs, PHs)
+                    mask = new_pixels == pixel
+                    TH = np.append(TH, THs[mask])
+                    PH = np.append(PH, PHs[mask])
+
+                RA = np.append(RA, np.degrees(PH))
+                DEC = np.append(DEC, 90 - np.degrees(TH))
+            
+            return RA, DEC
+
         else:
-            randoms_RA = np.append(randoms_RA, RAs)
-            randoms_DEC = np.append(randoms_DEC, DECs)
-    
-    randoms_RA = randoms_RA[:NRAND]
-    randoms_DEC = randoms_DEC[:NRAND]
-    
-    write_picca_drq_cat(randoms_z, randoms_RA, randoms_DEC, out_file, simplified=True)
+            raise ValueError('Select a valid method.', method)
 
 
 def master_to_qso_cat(in_file, out_file, min_zcat=1.7, nside=16, downsampling=1, downsampling_seed=0, randoms_input=False, rsd=True):
