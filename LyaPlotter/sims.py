@@ -162,7 +162,7 @@ class CoLoReSim():
     def __str__(self): #pragma: no cover
         return "{} sim. Id: {}\tName: {}\tPath: {}".format(self.sim_class,self.id_,self.__name__,self.sim_path)
 
-    def get_Sources(self, ifiles=None, lr_max=1200.,source=1,downsampling=1):
+    def get_Sources(self, ifiles=None, lr_max=1200.,source=1,downsampling=1, nside=16, mask=None):
         ''' Get sources from a CoLoRe simulation.
 
         It will load the different information from the fits files as they are called.
@@ -185,7 +185,7 @@ class CoLoReSim():
 
         files            = [self.sim_path / 'out_srcs_s{}_{}.fits'.format(source,ifile) for ifile in ifiles]
 
-        return CoLoReFiles(files, lr_max, self, downsampling=downsampling)
+        return CoLoReFiles(files, lr_max, self, downsampling=downsampling, nside=nside, mask=mask)
         # self.CoLoReFiles = CoLoReFiles(files,lr_max,self.file_type)
         # return self.CoLoReFiles
 
