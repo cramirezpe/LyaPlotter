@@ -161,7 +161,7 @@ def generate_random_objects_from_nz_file(dndz_file, out_file, zmin=None, zmax=No
     
     area = pixarea*pixels
     interpolation = interp1d(in_z, in_nz)
-    NRAND = int(quad(interpolation, zmin, zmax)[0]*area)
+    NRAND = int(N_factor*quad(interpolation, zmin, zmax)[0]*area)
 
     logger.debug('Generating random redshifts')
     ran = np.random.random(NRAND)
